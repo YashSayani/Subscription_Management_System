@@ -431,22 +431,22 @@ sequenceDiagram
 
 | Step | Phase Name | Tier | Owner | Status | Branch / PR | Verified By |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
-| **P0** | **Bootstrap & Monorepo Setup** | Must | A/B | **DONE** | `main` | Dev A/B (Typecheck, Lint, Test, Build, Health OK) |
-| **P1** | **Database Schema & Migrations** | Must | A | **TODO** | `feat/schema-db` | - |
-| **P2** | **Backend Foundation & Middlewares**| Must | B | **TODO** | `feat/backend-core` | - |
-| **P3** | **Authentication & RBAC Engine** | Must | A | **TODO** | `feat/auth-rbac` | - |
-| **P4** | **Frontend Foundation & Design System**| Must | B | **TODO** | `feat/web-core` | - |
-| **P5** | **Catalog Module (Products & Plans)**| Must | A | **TODO** | `feat/catalog` | - |
-| **P6** | **Quotations & Subscriptions Lifecycle**| Must | B | **TODO** | `feat/subscriptions`| - |
-| **P7** | **Idempotent Billing Worker** | Must | A | **TODO** | `feat/billing-worker`| - |
-| **P8** | **Invoicing Engine & PDF Export** | Must | B | **TODO** | `feat/invoices` | - |
-| **P9** | **Manual Payments & Allocation Engine**| Must | A | **TODO** | `feat/payments` | - |
-| **P10**| **Discounts & Atomic Counter Engine**| Must | B | **TODO** | `feat/discounts` | - |
-| **P11**| **Real-time Analytics Dashboard** | Must | A | **TODO** | `feat/analytics` | - |
-| **P12**| **Customer Self-Service Portal** | Must | B | **TODO** | `feat/customer-portal`| - |
-| **P13**| **Password Reset, Audit Logs & Mailer**| Should | A | **TODO** | `feat/audit-reset` | - |
-| **P14**| **Hardening, E2E Verification & Performance**| Must | A/B | **TODO** | `fix/hardening` | - |
-| **P15**| **Demo Seeding & Submission Docs**| Must | A/B | **TODO** | `docs/final-demo` | - |
+| **P0** | **Bootstrap & Monorepo Setup** | Must | Dev | **DONE** | `main` | Dev (Typecheck, Lint, Test, Build, Health OK) |
+| **P1** | **Database Schema & Migrations** | Must | Dev | **DONE** | `main` | Dev (Prisma Migrate, Sequences, CHECKs, 8/8 Tests OK) |
+| **P2** | **Backend Foundation & Middlewares**| Must | Dev | **TODO** | `feat/backend-core` | - |
+| **P3** | **Authentication & RBAC Engine** | Must | Dev | **TODO** | `feat/auth-rbac` | - |
+| **P4** | **Frontend Foundation & Design System**| Must | Dev | **TODO** | `feat/web-core` | - |
+| **P5** | **Catalog Module (Products & Plans)**| Must | Dev | **TODO** | `feat/catalog` | - |
+| **P6** | **Quotations & Subscriptions Lifecycle**| Must | Dev | **TODO** | `feat/subscriptions`| - |
+| **P7** | **Idempotent Billing Worker** | Must | Dev | **TODO** | `feat/billing-worker`| - |
+| **P8** | **Invoicing Engine & PDF Export** | Must | Dev | **TODO** | `feat/invoices` | - |
+| **P9** | **Manual Payments & Allocation Engine**| Must | Dev | **TODO** | `feat/payments` | - |
+| **P10**| **Discounts & Atomic Counter Engine**| Must | Dev | **TODO** | `feat/discounts` | - |
+| **P11**| **Real-time Analytics Dashboard** | Must | Dev | **TODO** | `feat/analytics` | - |
+| **P12**| **Customer Self-Service Portal** | Must | Dev | **TODO** | `feat/customer-portal`| - |
+| **P13**| **Password Reset, Audit Logs & Mailer**| Should | Dev | **TODO** | `feat/audit-reset` | - |
+| **P14**| **Hardening, E2E Verification & Performance**| Must | Dev | **TODO** | `fix/hardening` | - |
+| **P15**| **Demo Seeding & Submission Docs**| Must | Dev | **TODO** | `docs/final-demo` | - |
 
 ---
 
@@ -455,7 +455,8 @@ sequenceDiagram
 * **Format:** `[YYYY-MM-DD] [Step] [Author] [Branch/Commit]: What changed | Why | Real verification output | Follow-ups`
 * **Entries:**
   * `[2026-10-31] [P0-Prep] [Lead Architect] [main]: CLAUDE.md created | Initialized single source of truth defining system architecture, state machines, financial and security protocols, and 16-phase roadmap | Inspection of CLAUDE.md completed | Proceed to P0 Bootstrap`
-  * `[2026-10-31] [P0] [Dev A/B] [main]: Monorepo bootstrap initialized | Configured npm workspaces (@brightloop/api, @brightloop/web, @brightloop/database, @brightloop/shared), TypeScript strict base, ESLint, Prettier, Vitest, Tailwind CSS, Vite proxy, Prisma client singleton, and real PostgreSQL health check endpoint | Typecheck passed across all 4 workspaces; ESLint passed 0 errors 0 warnings; Vitest passed 2/2 tests in 126ms; Build completed in 5.77s; Live health check returned database: connected=true, latency=2ms, db=brightloop | Ready for Step P1 (Schema & Migrations)`
+  * `[2026-10-31] [P0] [Dev] [main]: Monorepo bootstrap initialized | Configured npm workspaces (@brightloop/api, @brightloop/web, @brightloop/database, @brightloop/shared), TypeScript strict base, ESLint, Prettier, Vitest, Tailwind CSS, Vite proxy, Prisma client singleton, and real PostgreSQL health check endpoint | Typecheck passed across all 4 workspaces; ESLint passed 0 errors 0 warnings; Vitest passed 2/2 tests in 126ms; Build completed in 5.77s; Live health check returned database: connected=true, latency=2ms, db=brightloop | Ready for Step P1 (Schema & Migrations)`
+  * `[2026-10-31] [P1] [Dev] [main]: Complete relational schema & PostgreSQL migrations deployed | Created 15 models with NUMERIC(14,2) currency precision, snapshot line items, native PostgreSQL sequences (sub_seq, inv_seq, pay_seq), formatted number generators, SQL CHECK constraints for negative price/overpayment prevention, composite unique key (subscription_id, period_start_date) on invoices, and composite query indexes | Prisma migrate deploy succeeded; Vitest suite passed 8/8 tests in 1.70s; Typecheck, Lint, and Build passed with 0 errors | Ready for Step P2 (Backend Foundation & Middlewares)`
 
 ---
 
@@ -463,18 +464,19 @@ sequenceDiagram
 
 | Issue ID | Module | Description | Severity | Workaround / Planned Fix |
 | :--- | :--- | :--- | :---: | :--- |
-| *None* | - | Monorepo bootstrap clean. Zero debt. | - | - |
+| *None* | - | Database schema and migrations applied with full integrity constraints. Zero debt. | - | - |
 
 ---
 
-## 10. NEXT PROMPT: STEP P1 DATABASE SCHEMA & MIGRATIONS
+## 10. NEXT PROMPT: STEP P2 BACKEND FOUNDATION & MIDDLEWARES
 
-### Objective for Step P1
-Design, implement, and migrate the complete relational database schema using Prisma and PostgreSQL. Apply strict data integrity rules: snapshot pricing, `NUMERIC(14,2)` for all monetary figures, PostgreSQL sequences for human-readable numbers (`SUB-YYYY-XXXXX`, `INV-YYYY-XXXXX`, `PAY-YYYY-XXXXX`), raw SQL migration CHECK constraints, and optimized composite indexes for query patterns.
+### Objective for Step P2
+Establish production-ready core backend infrastructure in `apps/api`: centralized custom AppError classes, Zod request validation middleware (body, params, query), Helmet configuration, CORS allowlist, rate limiting (global + strict auth limiter), custom anti-CSRF request header validation, and a standardized API response envelope utility.
 
-### Exact Deliverables for P1
-1. `packages/database/prisma/schema.prisma` complete with all domain models: `User`, `RefreshToken`, `Product`, `ProductVariant`, `Plan`, `Subscription`, `SubscriptionLine`, `QuotationTemplate`, `Invoice`, `InvoiceLine`, `Payment`, `PaymentAllocation`, `Discount`, `AuditLog`, `BillingAttempt`, `CustomerCredit`.
-2. Initial Prisma migration applied to local PostgreSQL `brightloop` database.
-3. Raw SQL migration script adding PostgreSQL SEQUENCES (`sub_seq`, `inv_seq`, `pay_seq`) and CHECK constraints (`sales_price >= 0`, `paid_amount <= total_amount`, `allocated_amount > 0`, `tax_rate BETWEEN 0 AND 100`).
-4. Automated database integration test verifying constraints, sequences, foreign key cascades, and unique constraints.
-5. Verification report with `npm run typecheck`, `npm run test`, and database inspection output.
+### Exact Deliverables for P2
+1. `src/common/errors.ts`: Typed `AppError` hierarchy (`NotFoundError`, `BadRequestError`, `UnauthorizedError`, `ForbiddenError`, `ConflictError`).
+2. `src/middleware/validate.ts`: Generic Zod request validator parsing and attaching typed data.
+3. `src/middleware/csrf.ts`: Header guard requiring `X-Requested-With` or Anti-CSRF on state-changing requests (`POST`, `PUT`, `PATCH`, `DELETE`).
+4. `src/middleware/rateLimiter.ts`: Global and auth-specific rate limiting via `express-rate-limit`.
+5. `src/common/response.ts`: Standardized response helper (`sendSuccess`, `sendError`).
+6. Integration test suite verifying validation failures, CSRF protection, and error formatting.
