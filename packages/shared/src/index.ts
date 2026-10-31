@@ -354,6 +354,59 @@ export interface DiscountValidationResultDto {
   message?: string;
 }
 
+// Analytics DTOs
+export interface AnalyticsOverviewDto {
+  mrr: string | number;
+  arr: string | number;
+  totalRevenueCollected: string | number;
+  outstandingArBalance: string | number;
+  overdueBalance: string | number;
+  overdueInvoicesCount: number;
+  activeSubscriptionsCount: number;
+  pausedSubscriptionsCount: number;
+  closedSubscriptionsCount: number;
+  totalSubscriptionsCount: number;
+  churnRate: string | number;
+}
+
+export interface AgingReportBracketDto {
+  bracket: 'CURRENT' | 'DAYS_1_30' | 'DAYS_31_60' | 'DAYS_61_90' | 'DAYS_90_PLUS';
+  label: string;
+  count: number;
+  totalAmount: string | number;
+}
+
+export interface OverdueInvoiceSummaryDto {
+  id: string;
+  invoiceNumber: string;
+  customerId: string;
+  customerName: string;
+  dueDate: string;
+  daysOverdue: number;
+  totalAmount: string | number;
+  paidAmount: string | number;
+  balanceDue: string | number;
+  status: InvoiceStatus;
+}
+
+export interface AgingReportDto {
+  totalOutstanding: string | number;
+  totalOverdue: string | number;
+  brackets: AgingReportBracketDto[];
+  overdueInvoices: OverdueInvoiceSummaryDto[];
+}
+
+export interface RevenueTrendItemDto {
+  month: string;
+  billedAmount: string | number;
+  collectedAmount: string | number;
+  newSubscriptionsCount: number;
+}
+
+export interface RevenueTrendsDto {
+  trends: RevenueTrendItemDto[];
+}
+
 export interface ApiErrorResponse {
   success: false;
   error: {

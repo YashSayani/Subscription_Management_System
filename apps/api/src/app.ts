@@ -14,6 +14,7 @@ import { billingRoutes } from './modules/billing/routes.js';
 import { invoiceRoutes } from './modules/invoices/routes.js';
 import { paymentRoutes } from './modules/payments/routes.js';
 import { discountRoutes } from './modules/discounts/routes.js';
+import { analyticsRoutes } from './modules/analytics/routes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { csrfProtection } from './middleware/csrf.js';
 import { globalLimiter } from './middleware/rateLimiter.js';
@@ -67,6 +68,7 @@ app.use('/api/billing', billingRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/discounts', discountRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // 404 Route Handler
 app.use((_req, res) => {

@@ -442,7 +442,7 @@ sequenceDiagram
 | **P8** | **Invoicing Engine & PDF Export** | Must | Dev | **DONE** | `main` | Dev (Typecheck, Lint 0 errors/0 warnings, Vitest 75/75 OK, Vite Build in 9.17s) |
 | **P9** | **Manual Payments & Allocation Engine**| Must | Dev | **DONE** | `main` | Dev (Typecheck, Lint 0 errors/0 warnings, Vitest 86/86 OK, Vite Build in 7.74s) |
 | **P10**| **Discounts & Atomic Counter Engine**| Must | Dev | **DONE** | `main` | Dev (Typecheck, Lint 0 errors/0 warnings, Vitest 97/97 OK, Vite Build in 12.95s) |
-| **P11**| **Real-time Analytics Dashboard** | Must | Dev | **TODO** | `feat/analytics` | - |
+| **P11**| **Real-time Analytics Dashboard** | Must | Dev | **DONE** | `main` | Dev (Typecheck, Lint 0 errors/0 warnings, Vitest 101/101 OK, Vite Build in 8.08s) |
 | **P12**| **Customer Self-Service Portal** | Must | Dev | **TODO** | `feat/customer-portal`| - |
 | **P13**| **Password Reset, Audit Logs & Mailer**| Should | Dev | **TODO** | `feat/audit-reset` | - |
 | **P14**| **Hardening, E2E Verification & Performance**| Must | Dev | **TODO** | `fix/hardening` | - |
@@ -466,6 +466,7 @@ sequenceDiagram
   * `[2026-10-31] [P8] [Dev] [main]: Invoicing Engine & PDF Export deployed | Built InvoiceService, controller, routes, derived overdue evaluation (Decision D-09: dueDate < NOW && status IN (CONFIRMED, PARTIALLY_PAID)), balance due calculation, Admin invoice voiding with zero-payment constraint, printable HTML/PDF export endpoint formatted with @media print, Admin/Staff InvoicesPage with live KPIs, overdue alert chips, and billing cycle trigger, and Customer CustomerInvoicesPage with itemized breakdown and printable statements | Vitest suite expanded to 75/75 passed tests in 24.76s across 8 test suites (9 invoices tests, 6 billing worker tests, 13 subscriptions tests, 13 catalog tests, 15 auth tests, 11 foundation tests, 6 schema tests, 2 health tests); Typecheck passed across 4 workspaces (0 errors); Lint passed 0 errors 0 warnings; Vite production build completed in 9.17s | Ready for Step P9 (Manual Payments & Allocation Engine)`
   * `[2026-10-31] [P9] [Dev] [main]: Manual Payments & Allocation Engine deployed | Built PaymentService, controller, routes, sequence generator PAY-YYYY-XXXXX, atomic multi-invoice allocation updating invoice paidAmount and status (CONFIRMED -> PARTIALLY_PAID -> PAID), customer credit surplus ledger (Decision D-07: surplus credited to User.creditBalance with audit logging), apply-credit endpoint allowing customers/admin to settle invoices via credit balance, and Admin/Staff PaymentsPage with live multi-invoice allocation calculator, quick-max fill, and surplus summary | Vitest suite expanded to 86/86 passed tests in 29.67s across 9 test suites (11 payments tests, 9 invoices tests, 6 billing worker tests, 13 subscriptions tests, 13 catalog tests, 15 auth tests, 11 foundation tests, 6 schema tests, 2 health tests); Typecheck passed across 4 workspaces (0 errors); Lint passed 0 errors 0 warnings; Vite production build completed in 7.74s | Ready for Step P10 (Discounts & Atomic Counter Engine)`
   * `[2026-10-31] [P10] [Dev] [main]: Discounts & Atomic Counter Engine deployed | Built DiscountService, controller, routes, promotional discount models (PERCENTAGE and FIXED_AMOUNT), validation rules (min purchase subtotal, date window, active status), single discount per invoice rule (Decision D-08), atomic concurrency race condition protection using conditional SQL UPDATE ... WHERE used_count < usage_limit RETURNING * (verified under concurrent load: exactly 1 redemption succeeds and concurrent attempts are rejected), and Admin DiscountsPage workbench for coupon management, usage limit tracking, and status toggles | Vitest suite expanded to 97/97 passed tests in 40.67s across 10 test suites (11 discounts tests, 11 payments tests, 9 invoices tests, 6 billing worker tests, 13 subscriptions tests, 13 catalog tests, 15 auth tests, 11 foundation tests, 6 schema tests, 2 health tests); Typecheck passed across 4 workspaces (0 errors); Lint passed 0 errors 0 warnings; Vite production build completed in 12.95s | Ready for Step P11 (Real-time Analytics Dashboard)`
+  * `[2026-10-31] [P11] [Dev] [main]: Real-time Analytics Dashboard deployed | Built AnalyticsService, controller, routes (/api/analytics/overview, /aging, /revenue-trends) with VIEW_ANALYTICS permission check, MRR frequency normalization (DAILY x 30, WEEKLY x 4.3333, MONTHLY x 1, YEARLY / 12), ARR derivation, actual payment collection aggregation, AR aging buckets (CURRENT, DAYS_1_30, DAYS_31_60, DAYS_61_90, DAYS_90_PLUS), churn rate calculation, and 6-month historical revenue collection trends. Upgraded Admin and Staff dashboards with live KPI metric cards, AR aging brackets, and overdue invoice alert panels | Vitest suite expanded to 101/101 passed tests in 42.11s across 11 test suites; Typecheck passed across 4 workspaces (0 errors); Lint passed with 0 errors 0 warnings; Vite production build completed in 8.08s | Ready for Step P12 (Customer Self-Service Portal)`
 
 ---
 
@@ -477,22 +478,20 @@ sequenceDiagram
 
 ---
 
-## 10. NEXT PROMPT: STEP P11 REAL-TIME ANALYTICS DASHBOARD
+## 10. NEXT PROMPT: STEP P12 CUSTOMER SELF-SERVICE PORTAL
 
-### Objective for Step P11
-Implement real-time financial metrics and analytics dashboards in both backend (`apps/api/src/modules/analytics/`) and frontend:
-1. **Financial Metrics Calculation Engine:**
-   - **Monthly Recurring Revenue (MRR):** Normalized across billing frequencies (DAILY × 30, WEEKLY × 4.33, MONTHLY × 1, YEARLY ÷ 12) for all active subscriptions.
-   - **Annual Recurring Revenue (ARR):** MRR × 12.
-   - **Total Revenue Collected:** Sum of all allocated payments and settled invoices.
-   - **Outstanding Accounts Receivable (AR):** Total balance due across open invoices.
-   - **Overdue Invoices & Aging Report:** Categorized into aging buckets: 1-30 days overdue, 31-60 days overdue, 61-90 days overdue, and 90+ days overdue.
-   - **Customer Churn & Retention Metrics:** Active vs cancelled subscriptions count.
-2. **Backend Analytics Endpoints (`apps/api/src/modules/analytics/`):**
-   - `GET /api/analytics/overview`: High-level executive KPI metrics (MRR, ARR, AR balance, overdue sum, active subs).
-   - `GET /api/analytics/aging`: Detailed Accounts Receivable aging report grouped by overdue brackets.
-   - `GET /api/analytics/revenue-trends`: Monthly revenue collections and new subscriptions trajectory.
-3. **Frontend Analytics Visualizations:**
-   - Visual dashboard in Admin and Staff layouts with interactive KPI metric cards.
-   - Revenue trajectory and invoice settlement charts.
-   - AR aging breakdown table with direct drill-down to overdue invoices.
+### Objective for Step P12
+Implement complete customer self-service capabilities in backend and frontend:
+1. **Profile Management:**
+   - View customer profile details (email, fullName, role, credit balance, billing address, tax ID, company name).
+   - Update billing address, tax ID, and company name via `PATCH /api/users/profile`.
+   - Strict IDOR enforcement ensuring customers cannot modify other customer records or escalate privileges.
+2. **Customer Credit Ledger & Statement:**
+   - `GET /api/users/credit-history`: Detailed audit log of customer credit balance adjustments (surplus credits from payments, credit applications to invoices).
+   - Live visual credit balance and transaction history in the Customer Portal.
+3. **Frontend Customer Profile & Accounting View:**
+   - Dedicated customer profile page (`/portal/profile`) with editable billing profile form.
+   - Credit balance transaction history ledger.
+   - Navigation link in Customer layout to access profile and account settings.
+4. **Automated Verification:**
+   - Comprehensive test suite (`apps/api/tests/customer-portal.test.ts`) covering profile retrieval, update, IDOR prevention, and credit history ledger.
