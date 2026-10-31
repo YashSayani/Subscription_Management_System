@@ -1,5 +1,6 @@
 import rateLimit from 'express-rate-limit';
 import { Request, Response } from 'express';
+import { env } from '../config/env.js';
 import { sendError } from '../common/response.js';
 
 export const globalLimiter = rateLimit({
@@ -7,6 +8,7 @@ export const globalLimiter = rateLimit({
   max: 100, // 100 requests per window
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => env.NODE_ENV === 'test',
   handler: (_req: Request, res: Response) => {
     sendError(
       res,
@@ -23,6 +25,7 @@ export const authLimiter = rateLimit({
   max: 5, // 5 requests per window
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => env.NODE_ENV === 'test',
   handler: (_req: Request, res: Response) => {
     sendError(
       res,

@@ -116,6 +116,15 @@ export const LoginPage: React.FC = () => {
           />
         </div>
 
+        <div className="flex justify-end -mt-1">
+          <Link
+            to="/forgot-password"
+            className="text-xs text-slate-400 hover:text-emerald-400 transition"
+          >
+            Forgot password?
+          </Link>
+        </div>
+
         <Button type="submit" className="w-full mt-2" isLoading={isSubmitting}>
           Sign In
         </Button>

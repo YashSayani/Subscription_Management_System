@@ -14,6 +14,8 @@ import { CustomerLayout } from './layouts/CustomerLayout';
 // Pages
 import { LoginPage } from './pages/auth/LoginPage';
 import { RegisterPage } from './pages/auth/RegisterPage';
+import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage';
+import { ResetPasswordPage } from './pages/auth/ResetPasswordPage';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { StaffDashboard } from './pages/staff/StaffDashboard';
 import { CustomerDashboard } from './pages/customer/CustomerDashboard';
@@ -29,6 +31,7 @@ import { PaymentsPage } from './pages/payments/PaymentsPage';
 import { DiscountsPage } from './pages/discounts/DiscountsPage';
 import { CustomerProfilePage } from './pages/customer/CustomerProfilePage';
 import { CustomersPage } from './pages/customers/CustomersPage';
+import { AuditLogsPage } from './pages/admin/AuditLogsPage';
 
 const RootRedirect: React.FC = () => {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -68,6 +71,8 @@ export default function App() {
           <Route element={<AuthLayout />}>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
           </Route>
 
           {/* Admin Routes */}
@@ -81,6 +86,7 @@ export default function App() {
               <Route path="payments" element={<PaymentsPage />} />
               <Route path="discounts" element={<DiscountsPage />} />
               <Route path="customers" element={<CustomersPage />} />
+              <Route path="audit-logs" element={<AuditLogsPage />} />
               <Route
                 path="staff"
                 element={

@@ -435,6 +435,38 @@ export interface RevenueTrendsDto {
   trends: RevenueTrendItemDto[];
 }
 
+// Password Reset DTOs
+export interface ForgotPasswordInput {
+  email: string;
+}
+
+export interface ResetPasswordInput {
+  token: string;
+  newPassword: string;
+}
+
+// Audit Log DTOs
+export interface AuditLogActorDto {
+  id: string;
+  fullName: string;
+  email: string;
+  role: UserRole;
+}
+
+export interface AuditLogDto {
+  id: string;
+  actorId?: string | null;
+  actor?: AuditLogActorDto | null;
+  actorRole: string;
+  action: string;
+  entityType: string;
+  entityId: string;
+  ipAddress?: string | null;
+  oldValues?: unknown;
+  newValues?: unknown;
+  createdAt: string;
+}
+
 export interface ApiErrorResponse {
   success: false;
   error: {

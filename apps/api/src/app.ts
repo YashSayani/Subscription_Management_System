@@ -15,6 +15,7 @@ import { invoiceRoutes } from './modules/invoices/routes.js';
 import { paymentRoutes } from './modules/payments/routes.js';
 import { discountRoutes } from './modules/discounts/routes.js';
 import { analyticsRoutes } from './modules/analytics/routes.js';
+import { auditRouter } from './modules/audit/routes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { csrfProtection } from './middleware/csrf.js';
 import { globalLimiter } from './middleware/rateLimiter.js';
@@ -33,20 +34,18 @@ app.use(
   }),
 );
 
-// Global Rate Limiting (bypassed in test environment)
-if (env.NODE_ENV !== 'test') {
-  app.use(globalLimiter);
-}
-
-// Body parsing with size limit
-app.use(express.json({ limit: '100kb' }));
-app.use(express.urlencoded({ extended: true, limit: '100kb' }));
+// Standard parsers
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Anti-CSRF protection on all state-changing endpoints
+// Anti-CSRF verification header check
 app.use(csrfProtection);
 
-// HTTP Request logging
+// Global IP-based rate limiting
+app.use(globalLimiter);
+
+// Structured logging with Pino HTTP
 if (env.NODE_ENV !== 'test') {
   app.use(
     pinoHttp({
@@ -69,6 +68,7 @@ app.use('/api/invoices', invoiceRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/discounts', discountRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/audit-logs', auditRouter);
 
 // 404 Route Handler
 app.use((_req, res) => {

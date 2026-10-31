@@ -28,3 +28,20 @@ export const loginSchema = z
   .strict();
 
 export type LoginInput = z.infer<typeof loginSchema>;
+
+export const forgotPasswordSchema = z
+  .object({
+    email: z.string().email('Invalid email address').toLowerCase().trim(),
+  })
+  .strict();
+
+export type ForgotPasswordBody = z.infer<typeof forgotPasswordSchema>;
+
+export const resetPasswordSchema = z
+  .object({
+    token: z.string().min(1, 'Reset token is required').trim(),
+    newPassword: passwordSchema,
+  })
+  .strict();
+
+export type ResetPasswordBody = z.infer<typeof resetPasswordSchema>;

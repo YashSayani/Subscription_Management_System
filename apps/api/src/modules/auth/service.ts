@@ -7,7 +7,9 @@ import {
   ConflictError,
   UnauthorizedError,
   ForbiddenError,
+  BadRequestError,
 } from '../../common/errors.js';
+import { mailer } from '../../common/mailer.js';
 import { RegisterInput, LoginInput } from './schema.js';
 import { AuthUser } from '../../common/types.js';
 
@@ -48,10 +50,10 @@ export const createTokenPair = async (
   const authUser: AuthUser = { userId, email, role, fullName };
   const accessToken = generateAccessToken(authUser);
 
-  // Generate cryptographically random refresh token
-  const rawRefreshToken = crypto.randomBytes(40).toString('hex');
+  // Generate 64-byte crypto random string for refresh token
+  const rawRefreshToken = crypto.randomBytes(64).toString('hex');
   const tokenHash = hashToken(rawRefreshToken);
-  const activeFamilyId = familyId || crypto.randomUUID();
+  const tokenFamily = familyId || crypto.randomUUID();
 
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + REFRESH_TOKEN_DAYS);
@@ -60,7 +62,7 @@ export const createTokenPair = async (
     data: {
       userId,
       tokenHash,
-      familyId: activeFamilyId,
+      familyId: tokenFamily,
       expiresAt,
     },
   });
@@ -83,37 +85,37 @@ export const registerCustomer = async (input: RegisterInput): Promise<TokenPair>
 
   const passwordHash = await bcrypt.hash(input.password, SALT_ROUNDS);
 
-  // Role is strictly hardcoded to CUSTOMER on registration (mass-assignment protection)
-  const newUser = await prisma.user.create({
+  const user = await prisma.user.create({
     data: {
       email: input.email,
       passwordHash,
       fullName: input.fullName,
+      role: Role.CUSTOMER,
       companyName: input.companyName,
       taxId: input.taxId,
       billingAddress: input.billingAddress,
-      role: Role.CUSTOMER,
-      creditBalance: 0.0,
       isActive: true,
     },
   });
 
-  return createTokenPair(newUser.id, newUser.email, newUser.role, newUser.fullName);
+  return createTokenPair(user.id, user.email, user.role, user.fullName);
 };
 
 export const loginUser = async (input: LoginInput): Promise<TokenPair> => {
+  // Generic error message prevents account enumeration
+  const invalidCredentialsError = new UnauthorizedError('Invalid email or password');
+
   const user = await prisma.user.findUnique({
     where: { email: input.email },
   });
 
-  // Generic error to prevent username/email enumeration
   if (!user || !user.isActive || user.deletedAt) {
-    throw new UnauthorizedError('Invalid email or password');
+    throw invalidCredentialsError;
   }
 
   const isPasswordValid = await bcrypt.compare(input.password, user.passwordHash);
   if (!isPasswordValid) {
-    throw new UnauthorizedError('Invalid email or password');
+    throw invalidCredentialsError;
   }
 
   return createTokenPair(user.id, user.email, user.role, user.fullName);
@@ -131,8 +133,7 @@ export const rotateRefreshToken = async (rawRefreshToken: string): Promise<Token
     throw new UnauthorizedError('Invalid refresh token');
   }
 
-  // Token Reuse Detection: If token is already revoked, potential token theft!
-  // Invalidate the entire token family immediately for security.
+  // Token Reuse Detection: If an already revoked token is used, invalidate its entire token family
   if (existingToken.isRevoked) {
     await prisma.refreshToken.updateMany({
       where: { familyId: existingToken.familyId },
@@ -141,29 +142,24 @@ export const rotateRefreshToken = async (rawRefreshToken: string): Promise<Token
     throw new ForbiddenError('Token reuse detected. All sessions in this family have been revoked.');
   }
 
-  // Check if token has expired
-  if (new Date() > existingToken.expiresAt) {
+  // Check expiration
+  if (existingToken.expiresAt < new Date()) {
     throw new UnauthorizedError('Refresh token has expired');
   }
 
-  if (!existingToken.user.isActive || existingToken.user.deletedAt) {
-    throw new UnauthorizedError('User account is inactive or disabled');
-  }
-
-  // Revoke the current refresh token
+  // Revoke current token
   await prisma.refreshToken.update({
     where: { id: existingToken.id },
     data: { isRevoked: true },
   });
 
-  // Issue new token pair preserving the familyId
-  return createTokenPair(
-    existingToken.user.id,
-    existingToken.user.email,
-    existingToken.user.role,
-    existingToken.user.fullName,
-    existingToken.familyId,
-  );
+  const { user } = existingToken;
+  if (!user || !user.isActive || user.deletedAt) {
+    throw new UnauthorizedError('User account is inactive or disabled');
+  }
+
+  // Issue new pair preserving familyId
+  return createTokenPair(user.id, user.email, user.role, user.fullName, existingToken.familyId);
 };
 
 export const logoutUser = async (rawRefreshToken?: string): Promise<void> => {
@@ -198,4 +194,112 @@ export const getCurrentUserProfile = async (userId: string) => {
   }
 
   return user;
+};
+
+export const requestPasswordReset = async (email: string) => {
+  const user = await prisma.user.findUnique({
+    where: { email: email.toLowerCase().trim() },
+  });
+
+  // Always return identical generic message to prevent account enumeration
+  const genericResponse = {
+    message: 'If this email is registered in our system, a password reset link has been sent.',
+  };
+
+  if (!user || !user.isActive || user.deletedAt) {
+    return genericResponse;
+  }
+
+  // Generate 32-byte crypto-secure hex token
+  const rawToken = crypto.randomBytes(32).toString('hex');
+  const tokenHash = hashToken(rawToken);
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour expiration
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      passwordResetToken: tokenHash,
+      passwordResetExpiresAt: expiresAt,
+    },
+  });
+
+  // Security audit log
+  await prisma.auditLog.create({
+    data: {
+      actorId: user.id,
+      actorRole: user.role,
+      action: 'PASSWORD_RESET_REQUESTED',
+      entityType: 'User',
+      entityId: user.id,
+      newValues: {
+        email: user.email,
+        expiresAt: expiresAt.toISOString(),
+      },
+    },
+  });
+
+  // Dispatch email via mock mailer
+  const resetUrl = `http://localhost:5173/reset-password?token=${rawToken}`;
+  await mailer.sendEmail({
+    to: user.email,
+    subject: 'Reset your Brightloop account password',
+    text: `Hello ${user.fullName},\n\nYou requested a password reset. Click the link below to set a new password:\n\n${resetUrl}\n\nThis link is valid for 1 hour.\nIf you did not request this, please ignore this email.`,
+    html: `<p>Hello <strong>${user.fullName}</strong>,</p><p>You requested a password reset for your Brightloop account. Click the link below to reset your password:</p><p><a href="${resetUrl}">Reset Password</a></p><p>This link expires in 1 hour.</p>`,
+  });
+
+  return genericResponse;
+};
+
+export const resetPassword = async (rawToken: string, newPassword: string) => {
+  const tokenHash = hashToken(rawToken);
+
+  const user = await prisma.user.findFirst({
+    where: {
+      passwordResetToken: tokenHash,
+      passwordResetExpiresAt: { gt: new Date() },
+      deletedAt: null,
+    },
+  });
+
+  if (!user || !user.isActive) {
+    throw new BadRequestError('Invalid or expired password reset token');
+  }
+
+  const passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+
+  await prisma.$transaction(async (tx) => {
+    // 1. Update user password and clear reset token
+    await tx.user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash,
+        passwordResetToken: null,
+        passwordResetExpiresAt: null,
+      },
+    });
+
+    // 2. Revoke all active refresh tokens for immediate session invalidation
+    await tx.refreshToken.updateMany({
+      where: { userId: user.id, isRevoked: false },
+      data: { isRevoked: true },
+    });
+
+    // 3. Security audit log
+    await tx.auditLog.create({
+      data: {
+        actorId: user.id,
+        actorRole: user.role,
+        action: 'PASSWORD_RESET_COMPLETED',
+        entityType: 'User',
+        entityId: user.id,
+        newValues: {
+          timestamp: new Date().toISOString(),
+        },
+      },
+    });
+  });
+
+  return {
+    message: 'Password has been successfully reset. Please log in with your new password.',
+  };
 };

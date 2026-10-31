@@ -99,3 +99,13 @@ export const me = async (req: Request, res: Response): Promise<void> => {
   const user = await authService.getCurrentUserProfile(req.user.userId);
   sendSuccess(res, { user });
 };
+
+export const forgotPassword = async (req: Request, res: Response): Promise<void> => {
+  const result = await authService.requestPasswordReset(req.body.email);
+  sendSuccess(res, result, 200);
+};
+
+export const resetPassword = async (req: Request, res: Response): Promise<void> => {
+  const result = await authService.resetPassword(req.body.token, req.body.newPassword);
+  sendSuccess(res, result, 200);
+};

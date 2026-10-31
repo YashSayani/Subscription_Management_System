@@ -32,6 +32,7 @@ export const AdminLayout: React.FC = () => {
     { label: 'Payments', to: '/admin/payments', icon: CreditCard },
     { label: 'Discounts', to: '/admin/discounts', icon: Tag },
     { label: 'Customers', to: '/admin/customers', icon: UserCheck },
+    { label: 'Audit Logs', to: '/admin/audit-logs', icon: ShieldAlert },
     { label: 'Staff Management', to: '/admin/staff', icon: Users },
     { label: 'System Diagnostics', to: '/admin/diagnostics', icon: Activity },
   ];

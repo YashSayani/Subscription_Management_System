@@ -444,7 +444,7 @@ sequenceDiagram
 | **P10**| **Discounts & Atomic Counter Engine**| Must | Dev | **DONE** | `main` | Dev (Typecheck, Lint 0 errors/0 warnings, Vitest 97/97 OK, Vite Build in 12.95s) |
 | **P11**| **Real-time Analytics Dashboard** | Must | Dev | **DONE** | `main` | Dev (Typecheck, Lint 0 errors/0 warnings, Vitest 101/101 OK, Vite Build in 8.08s) |
 | **P12**| **Customer Self-Service Portal** | Must | Dev | **DONE** | `main` | Dev (Typecheck, Lint 0 errors/0 warnings, Vitest 115/115 OK, Vite Build in 4.79s) |
-| **P13**| **Password Reset, Audit Logs & Mailer**| Should | Dev | **TODO** | `feat/audit-reset` | - |
+| **P13**| **Password Reset, Audit Logs & Mailer**| Should | Dev | **DONE** | `main` | Dev (Typecheck, Lint 0 errors/0 warnings, Vitest 127/127 OK, Vite Build in 5.35s) |
 | **P14**| **Hardening, E2E Verification & Performance**| Must | Dev | **TODO** | `fix/hardening` | - |
 | **P15**| **Demo Seeding & Submission Docs**| Must | Dev | **TODO** | `docs/final-demo` | - |
 
@@ -468,6 +468,7 @@ sequenceDiagram
   * `[2026-10-31] [P10] [Dev] [main]: Discounts & Atomic Counter Engine deployed | Built DiscountService, controller, routes, promotional discount models (PERCENTAGE and FIXED_AMOUNT), validation rules (min purchase subtotal, date window, active status), single discount per invoice rule (Decision D-08), atomic concurrency race condition protection using conditional SQL UPDATE ... WHERE used_count < usage_limit RETURNING * (verified under concurrent load: exactly 1 redemption succeeds and concurrent attempts are rejected), and Admin DiscountsPage workbench for coupon management, usage limit tracking, and status toggles | Vitest suite expanded to 97/97 passed tests in 40.67s across 10 test suites (11 discounts tests, 11 payments tests, 9 invoices tests, 6 billing worker tests, 13 subscriptions tests, 13 catalog tests, 15 auth tests, 11 foundation tests, 6 schema tests, 2 health tests); Typecheck passed across 4 workspaces (0 errors); Lint passed 0 errors 0 warnings; Vite production build completed in 12.95s | Ready for Step P11 (Real-time Analytics Dashboard)`
   * `[2026-10-31] [P11] [Dev] [main]: Real-time Analytics Dashboard deployed | Built AnalyticsService, controller, routes (/api/analytics/overview, /aging, /revenue-trends) with VIEW_ANALYTICS permission check, MRR frequency normalization (DAILY x 30, WEEKLY x 4.3333, MONTHLY x 1, YEARLY / 12), ARR derivation, actual payment collection aggregation, AR aging buckets (CURRENT, DAYS_1_30, DAYS_31_60, DAYS_61_90, DAYS_90_PLUS), churn rate calculation, and 6-month historical revenue collection trends. Upgraded Admin and Staff dashboards with live KPI metric cards, AR aging brackets, and overdue invoice alert panels | Vitest suite expanded to 101/101 passed tests in 42.11s across 11 test suites; Typecheck passed across 4 workspaces (0 errors); Lint passed with 0 errors 0 warnings; Vite production build completed in 8.08s | Ready for Step P12 (Customer Self-Service Portal)`
   * `[2026-10-31] [P12] [Dev] [main]: Customer Self-Service Portal deployed | Built self-service endpoints (/api/users/profile, /api/users/credit-history) with strict IDOR protections and mass-assignment prevention. Built Credit Ledger tracking surplus payments and invoice credit settlements. Created responsive CustomerProfilePage with live billing profile updater, available credit card, and chronological transaction statement table. Created internal CustomersPage directory with customer search and credit ledger audit modal for Admin and Staff | Vitest suite expanded to 115/115 passed tests across 12 test suites; Typecheck passed across 4 workspaces (0 errors); Lint passed with 0 errors 0 warnings; Vite production build completed in 4.79s | Ready for Step P13 (Password Reset, Audit Logs & Mailer)`
+  * `[2026-10-31] [P13] [Dev] [main]: Password Reset, Audit Logs & Mailer deployed | Built password reset recovery flow (/api/auth/forgot-password, /api/auth/reset-password) with SHA-256 token hashing, 1-hour expiration, user enumeration defense, and refresh token family invalidation. Built mock mailer with in-memory queue. Built administrative audit log engine (/api/audit-logs) with filtering by action, entity, actor, and date. Created ForgotPasswordPage, ResetPasswordPage with real-time password checklist, and AuditLogsPage with payload inspector in Admin layout | Vitest suite expanded to 127/127 passed tests across 13 test suites; Typecheck passed across 4 workspaces (0 errors); Lint passed with 0 errors 0 warnings; Vite production build completed in 5.35s | Ready for Step P14 (Hardening, E2E Verification & Performance)`
 
 ---
 
@@ -475,21 +476,23 @@ sequenceDiagram
 
 | Issue ID | Module | Description | Severity | Workaround / Planned Fix |
 | :--- | :--- | :--- | :---: | :--- |
-| *None* | - | Customer Portal, Analytics, Discounts, Payments, Invoices, Billing worker, Subscriptions, Catalog, Auth, and Frontend modules fully verified. | - | - |
+| *None* | - | Audit Logs, Password Reset, Mailer, Customer Portal, Analytics, Discounts, Payments, Invoices, Billing worker, Subscriptions, Catalog, Auth, and Frontend modules fully verified. | - | - |
 
 ---
 
-## 10. NEXT PROMPT: STEP P13 PASSWORD RESET, AUDIT LOGS & MAILER
+## 10. NEXT PROMPT: STEP P14 HARDENING, E2E VERIFICATION & PERFORMANCE
 
-### Objective for Step P13
-Implement password recovery flow, administrative audit logging viewer, and mock mailer engine:
-1. **Password Recovery Flow:**
-   - `POST /api/auth/forgot-password`: Generates secure random reset token (crypto-random hex), stores SHA-256 hash in `User.passwordResetToken` with 1-hour expiration (`passwordResetExpiresAt`), sends email via mock mailer, always returns generic success to prevent email enumeration.
-   - `POST /api/auth/reset-password`: Validates reset token hash against unexpired token in DB, enforces complex password policy, resets password, invalidates all existing refresh tokens for the user family, and logs security audit trail.
-2. **Administrative Audit Log Engine:**
-   - `GET /api/audit-logs`: Admin-only query endpoint with filtering by `entityType`, `entityId`, `action`, `actorId`, and date range.
-   - Frontend Audit Log viewer for Admin console displaying timestamp, actor, action, entity type, IP address, and payload delta.
-3. **Mock Mailer Service:**
-   - Pluggable mail transport: writes sent emails to in-memory queue and logs to console in development/testing mode with full token preview for easy testing.
+### Objective for Step P14
+Complete comprehensive system hardening, security header audit, rate limiter verification, and response performance benchmarking:
+1. **Security & Header Audit:**
+   - Audit all Helmet security headers (Content-Security-Policy, X-Frame-Options, X-Content-Type-Options, Strict-Transport-Security, Referrer-Policy).
+   - Ensure SameSite=Strict cookies and anti-CSRF custom header validation on all non-GET requests.
+   - Verify rate limiting configuration for auth and general API routes.
+2. **Performance Benchmarking:**
+   - Verify all API endpoints respond well under the 2-second target (target < 200ms for typical read/write operations).
+   - Inspect Prisma query execution and indexing.
+3. **End-to-End Complete SaaS Lifecycle Test:**
+   - Automated end-to-end simulation covering the entire business journey:
+     Admin setup catalog -> Customer registers -> Customer requests quotation -> Customer confirms quotation -> Admin activates subscription -> Billing engine runs & issues invoice -> Invoice overdue simulation -> Offline payment recording with surplus -> Surplus applied to settle second invoice -> Customer updates profile & inspects statement ledger -> Audit log verification.
 4. **Automated Verification:**
-   - Comprehensive test suite (`apps/api/tests/audit-mailer.test.ts`) verifying token hashing, expiration, password reset enforcement, session revocation, and audit trail queryability.
+   - Comprehensive test suite (`apps/api/tests/hardening-e2e.test.ts`) verifying headers, CSRF boundary, rate limiting, and complete lifecycle continuity.
