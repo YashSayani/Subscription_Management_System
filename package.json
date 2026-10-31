@@ -9,6 +9,7 @@
   ],
   "scripts": {
     "dev": "concurrently -k -p \"[{name}]\" -n \"API,WEB\" -c \"blue.bold,green.bold\" \"npm run dev --workspace=@brightloop/api\" \"npm run dev --workspace=@brightloop/web\"",
+    "dev:worker": "npm run dev:worker --workspace=@brightloop/api",
     "build": "npm run prisma:generate --workspace=@brightloop/database && npm run build --workspaces --if-present",
     "lint": "eslint .",
     "typecheck": "npm run prisma:generate --workspace=@brightloop/database && npm run typecheck --workspaces --if-present",

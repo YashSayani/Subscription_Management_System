@@ -10,6 +10,7 @@ import { authRouter } from './modules/auth/routes.js';
 import { usersRouter } from './modules/users/routes.js';
 import { catalogRoutes } from './modules/catalog/routes.js';
 import { subscriptionRoutes } from './modules/subscriptions/routes.js';
+import { billingRoutes } from './modules/billing/routes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { csrfProtection } from './middleware/csrf.js';
 import { globalLimiter } from './middleware/rateLimiter.js';
@@ -59,6 +60,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/catalog', catalogRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
+app.use('/api/billing', billingRoutes);
 
 // 404 Route Handler
 app.use((_req, res) => {

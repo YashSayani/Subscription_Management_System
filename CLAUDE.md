@@ -438,7 +438,7 @@ sequenceDiagram
 | **P4** | **Frontend Foundation & Design System**| Must | Dev | **DONE** | `main` | Dev (Typecheck, Lint 0 errors, Vitest 34/34 OK, Vite Build in 6.67s) |
 | **P5** | **Catalog Module (Products & Plans)**| Must | Dev | **DONE** | `main` | Dev (Typecheck, Lint 0 errors/0 warnings, Vitest 47/47 OK, Vite Build in 10.36s) |
 | **P6** | **Quotations & Subscriptions Lifecycle**| Must | Dev | **DONE** | `main` | Dev (Typecheck, Lint 0 errors/0 warnings, Vitest 60/60 OK, Vite Build in 11.35s) |
-| **P7** | **Idempotent Billing Worker** | Must | Dev | **TODO** | `feat/billing-worker`| - |
+| **P7** | **Idempotent Billing Worker** | Must | Dev | **DONE** | `main` | Dev (Typecheck, Lint 0 errors/0 warnings, Vitest 66/66 OK, Vite Build in 8.36s) |
 | **P8** | **Invoicing Engine & PDF Export** | Must | Dev | **TODO** | `feat/invoices` | - |
 | **P9** | **Manual Payments & Allocation Engine**| Must | Dev | **TODO** | `feat/payments` | - |
 | **P10**| **Discounts & Atomic Counter Engine**| Must | Dev | **TODO** | `feat/discounts` | - |
@@ -462,6 +462,7 @@ sequenceDiagram
   * `[2026-10-31] [P4] [Dev] [main]: Frontend Foundation & Design System deployed | Built Axios client with X-Requested-With CSRF injection and silent 401 token refresh queue, AuthContext/useAuth hook, modular UI design system (Button, Input, Badge, Card, Modal, Table, EmptyState, LoadingSpinner), 4 role-specific layout shells (AdminLayout, StaffLayout, CustomerLayout, AuthLayout) with Lucide navigation and credit balance indicator, client-side ProtectedRoute guard with role-based redirection, React Hook Form + Zod Login and Register pages with real-time password strength checklist indicator, DiagnosticsPage with live database round-trip latency polling, and role-specific dashboard views | Typecheck passed across 4 workspaces (0 errors); Lint passed 0 errors 0 warnings; Vitest suite passed 34/34 tests; Vite production build completed in 6.67s | Ready for Step P5 (Catalog Module)`
   * `[2026-10-31] [P5] [Dev] [main]: Catalog Module (Products, Variants & Plans) deployed | Built Catalog service, controller, and routes for Products, database-driven Product Variants with configurable price adjustments (e.g. brand Odoo adds 560), and subscription Plans with billing frequencies and renewal rules. Implemented decimal calculation engine preventing float inaccuracy and negative pricing. Created Admin/Staff Catalog management UI with product/plan creation modals and live variant editor, plus Customer Catalog portal with interactive variant toggles and live dynamic price calculation | Vitest suite expanded to 47/47 passed tests in 10.91s (13 catalog tests, 15 auth tests, 11 foundation tests, 6 schema tests, 2 health tests); Typecheck passed across 4 workspaces (0 errors); Lint passed with 0 errors 0 warnings; Vite production build completed in 10.36s | Ready for Step P6 (Quotations & Subscriptions Lifecycle)`
   * `[2026-10-31] [P6] [Dev] [main]: Quotations & Subscriptions Lifecycle deployed | Built unified subscription data model (Decision D-02: quotation is a subscription row with status QUOTATION), sequence number generator (SUB-YYYY-XXXXX), line item price/tax snapshots protecting historic records against catalog edits, full state machine transitions (DRAFT -> QUOTATION -> CONFIRMED -> ACTIVE -> PAUSED -> CLOSED), pause without retroactive backfill (D-05), early closure without refunds (D-06), and strict IDOR scoping. Built Subscriptions workbench for Admin/Staff and Customer Subscriptions Portal with one-click quote confirmation | Vitest suite expanded to 60/60 passed tests in 24.13s (13 subscriptions tests, 13 catalog tests, 15 auth tests, 11 foundation tests, 6 schema tests, 2 health tests); Typecheck passed across 4 workspaces (0 errors); Lint passed 0 errors 0 warnings; Vite production build completed in 11.35s | Ready for Step P7 (Idempotent Billing Worker)`
+  * `[2026-10-31] [P7] [Dev] [main]: Idempotent Billing Worker deployed | Built BillingEngine featuring PostgreSQL SELECT ... FOR UPDATE SKIP LOCKED for concurrent safe batching, atomic transaction executing period calculation, sequence invoice issuance (INV-YYYY-XXXXX), snapshot line transfer, next billing date advancement, and BillingAttempt logging. Enforced composite UNIQUE(subscription_id, period_start_date) physical double-billing prevention. Created standalone worker process runner (src/worker.ts, npm run dev:worker) and Admin on-demand trigger endpoints | Vitest suite expanded to 66/66 passed tests in 20.27s (6 billing worker tests, 13 subscriptions tests, 13 catalog tests, 15 auth tests, 11 foundation tests, 6 schema tests, 2 health tests); Typecheck passed across 4 workspaces (0 errors); Lint passed 0 errors 0 warnings; Vite production build completed in 8.36s | Ready for Step P8 (Invoicing Engine & PDF Export)`
 
 ---
 
@@ -469,28 +470,27 @@ sequenceDiagram
 
 | Issue ID | Module | Description | Severity | Workaround / Planned Fix |
 | :--- | :--- | :--- | :---: | :--- |
-| *None* | - | Subscriptions, Catalog, Auth, and Frontend modules fully verified with zero warnings. | - | - |
+| *None* | - | Billing worker, Subscriptions, Catalog, Auth, and Frontend modules fully verified. | - | - |
 
 ---
 
-## 10. NEXT PROMPT: STEP P7 IDEMPOTENT BILLING WORKER
+## 10. NEXT PROMPT: STEP P8 INVOICING ENGINE & PDF EXPORT
 
-### Objective for Step P7
-Implement the standalone out-of-process background billing worker (`apps/api/src/worker.ts` and `apps/api/src/modules/billing/`):
-1. **Concurrency Control & Skip Locked:**
-   - Polling engine querying due active subscriptions with `SELECT ... FOR UPDATE SKIP LOCKED` to allow multiple concurrent worker processes without double-billing race conditions.
-2. **Transactional Billing Cycle:**
-   - Evaluates active subscriptions where `next_billing_date <= NOW()`.
-   - Computes billing period: `period_start_date` and `period_end_date` based on `plan.billingFrequency` (`DAILY`, `WEEKLY`, `MONTHLY`, `YEARLY`) normalized to `Asia/Kolkata` timezone.
-   - Generates formatted sequence invoice number (`INV-YYYY-XXXXX` from `inv_seq`).
-   - Copies snapshot line items from `subscription_lines` to `invoice_lines`.
-   - Evaluates best eligible discount (if any) atomically.
-   - Advances `subscription.next_billing_date` to next cycle date in the SAME database transaction.
-   - Logs `billing_attempts` record capturing status (`SUCCESS` / `FAILED`), execution time, and error logs if any.
-3. **Double Billing & Crash Recovery Protection:**
-   - Enforced by database composite unique constraint `UNIQUE (subscription_id, period_start_date)` on `invoices`.
-   - Capped retries with backoff and catch-up of missed periods exactly once.
-4. **Standalone Process Runner:**
-   - Script `npm run dev:worker` and production worker execution runner.
-5. **Integration Tests:**
+### Objective for Step P8
+Implement the Invoicing management module in both backend (`apps/api/src/modules/invoices/`) and frontend:
+1. **Invoice State Machine & Status:**
+   - Statuses: `DRAFT`, `CONFIRMED`, `PARTIALLY_PAID`, `PAID`, `CANCELLED`.
+   - As per locked architectural decision **D-09**, `OVERDUE` is dynamically derived (`dueDate < NOW() && status IN ('CONFIRMED', 'PARTIALLY_PAID')`), NOT stored as an out-of-sync database column.
+2. **Backend Services & Endpoints:**
+   - Invoices list with search, status filters (including computed overdue filter), customer filter, and date ranges.
+   - Invoice details endpoint fetching snapshot lines, allocations, and customer credit balance.
+   - Invoice cancellation / voiding (Admin only) with state transition checks.
+   - Clean printable HTML/PDF export endpoint formatted for printing and download.
+3. **Frontend Interfaces:**
+   - Admin & Staff Invoices Workbench with overdue warning chips, payment tracking, and detail drawer.
+   - Customer Portal Invoices page with view and print capabilities.
+4. **Automated Test Suite:**
+   - Derived overdue calculation verification.
+   - Admin voiding vs customer rejection.
+   - Financial line arithmetic (subtotal + tax - discount = total).
    - Vitest suite asserting skip locked locking, invoice generation, sequence number generation, advancing next billing date, and idempotency under concurrent trigger.
