@@ -5,6 +5,7 @@ import { requireAdmin, requireStaffOrAdmin } from '../../middleware/authorize.js
 import { validateRequest } from '../../middleware/validate.js';
 import {
   createStaffSchema,
+  createCustomerSchema,
   userQuerySchema,
   updateProfileSchema,
   creditHistoryQuerySchema,
@@ -37,6 +38,14 @@ usersRouter.post(
   requireAdmin,
   validateRequest({ body: createStaffSchema }),
   asyncHandler(usersController.createStaff),
+);
+
+// Admin & Staff customer onboarding
+usersRouter.post(
+  '/customers',
+  requireStaffOrAdmin,
+  validateRequest({ body: createCustomerSchema }),
+  asyncHandler(usersController.createCustomer),
 );
 
 // Staff and Admin can list/search users

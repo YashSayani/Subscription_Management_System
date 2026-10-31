@@ -1,14 +1,105 @@
+import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import { prisma, Role, Prisma } from '@brightloop/database';
 import { ConflictError, NotFoundError } from '../../common/errors.js';
 import { formatMoney } from '../../common/money.js';
 import {
   CreateStaffInput,
+  CreateCustomerInput,
   UserQueryInput,
   UpdateProfileBody,
 } from './schema.js';
 
 const SALT_ROUNDS = 12;
+
+export const createCustomerUser = async (
+  input: CreateCustomerInput,
+  actorId: string,
+  actorRole: string,
+) => {
+  const existingUser = await prisma.user.findUnique({
+    where: { email: input.email },
+  });
+
+  if (existingUser) {
+    throw new ConflictError('A user with this email already exists');
+  }
+
+  // Use provided password or generate a secure temporary password
+  const plainPassword =
+    input.password && input.password.trim().length > 0
+      ? input.password
+      : `Bright#${crypto.randomBytes(4).toString('hex')}!`;
+
+  const passwordHash = await bcrypt.hash(plainPassword, SALT_ROUNDS);
+  const initialCreditNum = input.initialCredit && input.initialCredit > 0 ? input.initialCredit : 0;
+
+  const customer = await prisma.user.create({
+    data: {
+      email: input.email,
+      passwordHash,
+      fullName: input.fullName,
+      role: Role.CUSTOMER,
+      companyName: input.companyName || null,
+      taxId: input.taxId || null,
+      billingAddress: input.billingAddress || null,
+      creditBalance: new Prisma.Decimal(initialCreditNum),
+      isActive: true,
+    },
+    select: {
+      id: true,
+      email: true,
+      fullName: true,
+      role: true,
+      companyName: true,
+      taxId: true,
+      billingAddress: true,
+      creditBalance: true,
+      isActive: true,
+      createdAt: true,
+    },
+  });
+
+  if (initialCreditNum > 0) {
+    await prisma.auditLog.create({
+      data: {
+        actorId,
+        actorRole,
+        action: 'PAYMENT_SURPLUS_CREDITED',
+        entityType: 'User',
+        entityId: customer.id,
+        newValues: {
+          note: 'Initial account opening credit',
+          surplusAmount: initialCreditNum.toFixed(2),
+        },
+      },
+    });
+  }
+
+  await prisma.auditLog.create({
+    data: {
+      actorId,
+      actorRole,
+      action: 'CUSTOMER_CREATED',
+      entityType: 'User',
+      entityId: customer.id,
+      newValues: {
+        email: customer.email,
+        fullName: customer.fullName,
+        companyName: customer.companyName,
+        initialCredit: initialCreditNum.toFixed(2),
+      },
+    },
+  });
+
+  return {
+    customer: {
+      ...customer,
+      creditBalance: formatMoney(customer.creditBalance),
+    },
+    temporaryPassword: input.password ? undefined : plainPassword,
+  };
+};
 
 export const createStaffUser = async (input: CreateStaffInput) => {
   const existingUser = await prisma.user.findUnique({

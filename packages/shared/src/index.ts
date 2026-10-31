@@ -104,6 +104,21 @@ export interface UpdateProfileInput {
   billingAddress?: string | null;
 }
 
+export interface CreateCustomerInput {
+  email: string;
+  fullName: string;
+  password?: string;
+  companyName?: string;
+  taxId?: string;
+  billingAddress?: string;
+  initialCredit?: number;
+}
+
+export interface CreatedCustomerDto {
+  customer: UserDto;
+  temporaryPassword?: string;
+}
+
 export interface UserProfileDto extends UserDto {
   updatedAt?: string;
 }

@@ -5,6 +5,13 @@ import { ForbiddenError } from '../../common/errors.js';
 import * as usersService from './service.js';
 import { UserQueryInput, UpdateProfileBody } from './schema.js';
 
+export const createCustomer = async (req: Request, res: Response): Promise<void> => {
+  const actorId = req.user!.userId;
+  const actorRole = req.user!.role;
+  const result = await usersService.createCustomerUser(req.body, actorId, actorRole);
+  sendSuccess(res, result, 201);
+};
+
 export const createStaff = async (req: Request, res: Response): Promise<void> => {
   const staff = await usersService.createStaffUser(req.body);
   sendSuccess(res, { staff }, 201);

@@ -11,6 +11,20 @@ export const createStaffSchema = z
 
 export type CreateStaffInput = z.infer<typeof createStaffSchema>;
 
+export const createCustomerSchema = z
+  .object({
+    email: z.string().email('Invalid email address').toLowerCase().trim(),
+    password: passwordSchema.optional(),
+    fullName: z.string().min(2, 'Full name must be at least 2 characters').trim(),
+    companyName: z.string().trim().max(120).optional(),
+    taxId: z.string().trim().max(50).optional(),
+    billingAddress: z.string().trim().max(500).optional(),
+    initialCredit: z.coerce.number().min(0, 'Initial credit cannot be negative').optional(),
+  })
+  .strict();
+
+export type CreateCustomerInput = z.infer<typeof createCustomerSchema>;
+
 export const userQuerySchema = z.object({
   role: z.enum(['ADMIN', 'STAFF', 'CUSTOMER']).optional(),
   search: z.string().trim().optional(),

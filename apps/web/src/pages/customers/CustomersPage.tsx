@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Users,
   Search,
@@ -9,6 +9,15 @@ import {
   ArrowUpRight,
   ArrowDownLeft,
   RefreshCw,
+  Plus,
+  Key,
+  Eye,
+  EyeOff,
+  Copy,
+  Check,
+  Sparkles,
+  AlertCircle,
+  CheckCircle2,
 } from 'lucide-react';
 import { UserDto, CustomerCreditHistoryDto } from '@brightloop/shared';
 import { apiClient } from '../../api/client';
@@ -21,8 +30,29 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 
 export const CustomersPage: React.FC = () => {
+  const queryClient = useQueryClient();
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<UserDto | null>(null);
+
+  // Create customer modal state
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [companyName, setCompanyName] = useState('');
+  const [taxId, setTaxId] = useState('');
+  const [billingAddress, setBillingAddress] = useState('');
+  const [initialCredit, setInitialCredit] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [createdSuccess, setCreatedSuccess] = useState<{
+    email: string;
+    fullName: string;
+    temporaryPassword?: string;
+  } | null>(null);
+  const [copied, setCopied] = useState(false);
 
   // Fetch customers
   const {
@@ -62,6 +92,100 @@ export const CustomersPage: React.FC = () => {
     0,
   );
 
+  const resetCreateForm = () => {
+    setFullName('');
+    setEmail('');
+    setPassword('');
+    setCompanyName('');
+    setTaxId('');
+    setBillingAddress('');
+    setInitialCredit('');
+    setShowPassword(false);
+    setFormError(null);
+    setCreatedSuccess(null);
+    setCopied(false);
+  };
+
+  const handleGeneratePassword = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%^&*';
+    let generated = 'Bright#';
+    for (let i = 0; i < 6; i++) {
+      generated += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    generated += '!';
+    setPassword(generated);
+    setShowPassword(true);
+  };
+
+  const handleCreateCustomer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError(null);
+
+    const trimmedName = fullName.trim();
+    const trimmedEmail = email.trim().toLowerCase();
+    const trimmedPassword = password.trim();
+
+    if (!trimmedName || trimmedName.length < 2) {
+      setFormError('Full name must be at least 2 characters long');
+      return;
+    }
+
+    if (!trimmedEmail || !trimmedEmail.includes('@')) {
+      setFormError('Please enter a valid email address');
+      return;
+    }
+
+    if (trimmedPassword && trimmedPassword.length < 9) {
+      setFormError('Password must be at least 9 characters long with uppercase, lowercase, and special characters');
+      return;
+    }
+
+    const creditNum = initialCredit ? parseFloat(initialCredit) : undefined;
+    if (creditNum !== undefined && (isNaN(creditNum) || creditNum < 0)) {
+      setFormError('Initial credit balance cannot be negative');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const res = await apiClient.post('/api/users/customers', {
+        fullName: trimmedName,
+        email: trimmedEmail,
+        password: trimmedPassword || undefined,
+        companyName: companyName.trim() || undefined,
+        taxId: taxId.trim() || undefined,
+        billingAddress: billingAddress.trim() || undefined,
+        initialCredit: creditNum,
+      });
+
+      const data = res.data.data;
+      queryClient.invalidateQueries({ queryKey: ['staff-customers'] });
+
+      setCreatedSuccess({
+        email: data.customer.email,
+        fullName: data.customer.fullName,
+        temporaryPassword: data.temporaryPassword || (trimmedPassword || undefined),
+      });
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message ||
+        (err as Error).message ||
+        'Failed to create customer';
+      setFormError(msg);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCopyCredentials = () => {
+    if (!createdSuccess) return;
+    const text = `Brightloop Customer Portal Access\nEmail: ${createdSuccess.email}\nPassword: ${createdSuccess.temporaryPassword || '(Provided during setup)'}\nURL: ${window.location.origin}/login`;
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  };
+
   return (
     <div className="space-y-6 max-w-7xl">
       {/* Header */}
@@ -86,6 +210,19 @@ export const CustomersPage: React.FC = () => {
           >
             <RefreshCw className={`h-4 w-4 mr-1.5 ${isFetching ? 'animate-spin' : ''}`} />
             Refresh
+          </Button>
+
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => {
+              resetCreateForm();
+              setIsCreateModalOpen(true);
+            }}
+            className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-medium shadow-sm"
+          >
+            <Plus className="h-4 w-4" />
+            Add Customer
           </Button>
         </div>
       </div>
@@ -151,7 +288,7 @@ export const CustomersPage: React.FC = () => {
                 description={
                   searchTerm
                     ? `No customer accounts matching "${searchTerm}".`
-                    : 'No customer accounts registered in the system yet.'
+                    : 'No customer accounts registered in the system yet. Click "Add Customer" to create the first one.'
                 }
                 icon={<Users className="h-6 w-6" />}
               />
@@ -225,6 +362,247 @@ export const CustomersPage: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Add New Customer Modal */}
+      {isCreateModalOpen && (
+        <Modal
+          isOpen={isCreateModalOpen}
+          onClose={() => {
+            if (!isSubmitting) {
+              setIsCreateModalOpen(false);
+              resetCreateForm();
+            }
+          }}
+          title={createdSuccess ? 'Customer Created Successfully' : 'Register New Customer Account'}
+          maxWidth="lg"
+        >
+          {createdSuccess ? (
+            <div className="space-y-4 py-2">
+              <div className="p-4 rounded-xl bg-emerald-950/30 border border-emerald-500/30 flex items-start gap-3">
+                <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-400 shrink-0">
+                  <CheckCircle2 className="h-6 w-6" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-sm font-semibold text-white">Customer Account Ready</h4>
+                  <p className="text-xs text-slate-300 mt-1">
+                    Customer <strong className="text-emerald-300">{createdSuccess.fullName}</strong> was registered. You can provide these credentials for login.
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-3">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-400">Login Portal URL:</span>
+                  <span className="font-mono text-slate-200">{window.location.origin}/login</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-400">Email Address:</span>
+                  <span className="font-mono text-emerald-400 font-medium">{createdSuccess.email}</span>
+                </div>
+                {createdSuccess.temporaryPassword && (
+                  <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-800">
+                    <span className="text-slate-400">Generated Password:</span>
+                    <span className="font-mono font-bold text-amber-300 bg-amber-950/40 px-2 py-0.5 rounded border border-amber-800/40">
+                      {createdSuccess.temporaryPassword}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCopyCredentials}
+                  className="flex items-center gap-1.5"
+                >
+                  {copied ? (
+                    <>
+                      <Check className="h-4 w-4 text-emerald-400" />
+                      <span className="text-emerald-400">Copied to Clipboard!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-4 w-4 text-slate-400" />
+                      <span>Copy Credentials</span>
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => {
+                    setIsCreateModalOpen(false);
+                    resetCreateForm();
+                  }}
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white"
+                >
+                  Done
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <form onSubmit={handleCreateCustomer} className="space-y-4">
+              {formError && (
+                <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 flex items-start gap-2.5 text-xs text-rose-300">
+                  <AlertCircle className="h-4 w-4 shrink-0 text-rose-400 mt-0.5" />
+                  <span>{formError}</span>
+                </div>
+              )}
+
+              {/* Personal & Account Info */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                    Full Name <span className="text-rose-400">*</span>
+                  </label>
+                  <Input
+                    placeholder="E.g., Priya Sharma"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                    Email Address <span className="text-rose-400">*</span>
+                  </label>
+                  <Input
+                    type="email"
+                    placeholder="priya@company.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Password Field with Generator */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-medium text-slate-300">
+                    Password <span className="text-slate-500 text-[10px]">(Optional — auto-generated if left blank)</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleGeneratePassword}
+                    className="text-[11px] text-emerald-400 hover:text-emerald-300 flex items-center gap-1 font-medium transition"
+                  >
+                    <Sparkles className="h-3 w-3" />
+                    Auto-Generate Secure Password
+                  </button>
+                </div>
+                <div className="relative">
+                  <Input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Min 9 chars, uppercase, lowercase, special (!@#)"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    leftIcon={<Key className="h-4 w-4 text-slate-400" />}
+                  />
+                  {password && (
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Business Info */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                    Company Name
+                  </label>
+                  <Input
+                    placeholder="E.g., Acme Cloud Corp"
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                    leftIcon={<Building className="h-4 w-4 text-slate-400" />}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                    Tax ID / GSTIN
+                  </label>
+                  <Input
+                    placeholder="27ABCDE1234F1Z5"
+                    value={taxId}
+                    onChange={(e) => setTaxId(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Initial Credit Balance */}
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  Initial Opening Credit Balance (₹) <span className="text-slate-500 text-[10px]">(Optional prepaid balance)</span>
+                </label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="0.00"
+                  value={initialCredit}
+                  onChange={(e) => setInitialCredit(e.target.value)}
+                  leftIcon={<Wallet className="h-4 w-4 text-slate-400" />}
+                />
+              </div>
+
+              {/* Billing Address */}
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  Billing Address
+                </label>
+                <textarea
+                  className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-indigo-500 resize-none h-16"
+                  placeholder="Street Address, City, State, ZIP..."
+                  value={billingAddress}
+                  onChange={(e) => setBillingAddress(e.target.value)}
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setIsCreateModalOpen(false);
+                    resetCreateForm();
+                  }}
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="sm"
+                  disabled={isSubmitting}
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-medium"
+                >
+                  {isSubmitting ? (
+                    <span className="flex items-center gap-1.5">
+                      <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                      Creating Account...
+                    </span>
+                  ) : (
+                    'Create Customer Account'
+                  )}
+                </Button>
+              </div>
+            </form>
+          )}
+        </Modal>
+      )}
 
       {/* Audit Ledger Modal */}
       {selectedCustomer && (
