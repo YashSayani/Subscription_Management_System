@@ -22,6 +22,7 @@ export const createSubscriptionSchema = z
     quoteValidUntil: z.string().datetime().optional().nullable(),
     paymentTermsDays: z.number().int().min(0).default(15),
     notes: z.string().trim().optional().nullable(),
+    discountCode: z.string().trim().optional(),
     lines: z
       .array(createSubscriptionLineSchema)
       .min(1, 'At least one subscription line item is required'),

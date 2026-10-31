@@ -7,6 +7,7 @@ import {
 import { logger } from '../../common/logger.js';
 import { roundMoney } from '../../common/money.js';
 import { computeBillingPeriod, addDays } from '../../common/dates.js';
+import { DiscountService } from '../discounts/service.js';
 
 export interface BillingCycleResult {
   processed: number;
@@ -142,7 +143,42 @@ export class BillingEngine {
             (acc, l) => acc.plus(l.taxAmount),
             new Prisma.Decimal(0),
           );
-          const totalAmount = roundMoney(subtotal.plus(taxAmount));
+
+          // Check for first-cycle coupon redemption attached to subscription
+          let discountAmount = new Prisma.Decimal(0.0);
+          let appliedDiscountId: string | null = null;
+
+          const couponMatch = subscription.notes?.match(/\[COUPON:([A-Za-z0-9_-]+)\]/);
+          if (couponMatch && couponMatch[1]) {
+            const couponCode = couponMatch[1];
+            const discount = await tx.discount.findUnique({
+              where: { code: couponCode },
+            });
+            if (discount && discount.isActive) {
+              try {
+                const redemption = await DiscountService.redeemDiscountAtomic(
+                  tx,
+                  discount.id,
+                  subtotal,
+                );
+                discountAmount = redemption.discountAmount;
+                appliedDiscountId = discount.id;
+                // Mark coupon as redeemed in subscription notes so it only applies once
+                const updatedNotes = subscription.notes
+                  ? subscription.notes.replace(/\[COUPON:([A-Za-z0-9_-]+)\][^\n]*/, `[REDEEMED_COUPON:${couponCode}]`)
+                  : null;
+                await tx.subscription.update({
+                  where: { id: subscription.id },
+                  data: { notes: updatedNotes },
+                });
+              } catch (err: unknown) {
+                logger.warn(`[BillingEngine] Could not redeem coupon ${couponCode}: ${(err as Error).message}`);
+              }
+            }
+          }
+
+          const baseTotal = subtotal.minus(discountAmount).plus(taxAmount);
+          const totalAmount = roundMoney(baseTotal.lessThan(0) ? new Prisma.Decimal(0) : baseTotal);
 
           // Create Invoice
           const invoice = await tx.invoice.create({
@@ -155,7 +191,8 @@ export class BillingEngine {
               periodEndDate,
               dueDate,
               subtotal,
-              discountAmount: new Prisma.Decimal(0.0),
+              discountAmount,
+              discountId: appliedDiscountId,
               taxAmount,
               totalAmount,
               paidAmount: new Prisma.Decimal(0.0),

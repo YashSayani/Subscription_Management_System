@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { sendSuccess } from '../../common/response.js';
 import { InvoiceService } from './service.js';
-import { ListInvoicesQuery, CancelInvoiceInput } from './schema.js';
+import { ListInvoicesQuery, CancelInvoiceInput, ApplyInvoiceDiscountInput } from './schema.js';
 
 export class InvoiceController {
   static async listInvoices(req: Request, res: Response) {
@@ -15,6 +15,12 @@ export class InvoiceController {
   static async getInvoice(req: Request, res: Response) {
     const invoice = await InvoiceService.getInvoiceById(req.params.id, req.user!);
     sendSuccess(res, { invoice });
+  }
+
+  static async applyDiscount(req: Request, res: Response) {
+    const { code } = req.body as ApplyInvoiceDiscountInput;
+    const invoice = await InvoiceService.applyDiscount(req.params.id, code, req.user!);
+    sendSuccess(res, { invoice, message: `Discount coupon '${code}' applied successfully` });
   }
 
   static async cancelInvoice(req: Request, res: Response) {

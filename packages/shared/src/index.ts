@@ -306,6 +306,7 @@ export interface InvoiceDto {
   paidAmount: string | number;
   balanceDue: string | number;
   discountId?: string | null;
+  discount?: DiscountDto | null;
   notes?: string | null;
   lines: InvoiceLineDto[];
   allocations?: Array<{

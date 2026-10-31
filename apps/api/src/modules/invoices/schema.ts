@@ -24,3 +24,14 @@ export const cancelInvoiceSchema = z
   .strict();
 
 export type CancelInvoiceInput = z.infer<typeof cancelInvoiceSchema>;
+
+export const applyInvoiceDiscountSchema = z
+  .object({
+    code: z
+      .string()
+      .min(1, 'Discount coupon code is required')
+      .transform((v) => v.toUpperCase().trim()),
+  })
+  .strict();
+
+export type ApplyInvoiceDiscountInput = z.infer<typeof applyInvoiceDiscountSchema>;

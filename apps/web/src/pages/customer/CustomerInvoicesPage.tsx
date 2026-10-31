@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Receipt,
   Printer,
@@ -7,6 +7,9 @@ import {
   AlertTriangle,
   Eye,
   RefreshCw,
+  Tag,
+  CheckCircle2,
+  AlertCircle,
 } from 'lucide-react';
 import { InvoiceDto, InvoiceStatus } from '@brightloop/shared';
 import { apiClient } from '../../api/client';
@@ -14,11 +17,19 @@ import { Button } from '../../components/ui/Button';
 import { Card, CardContent } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
+import { Input } from '../../components/ui/Input';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 
 export const CustomerInvoicesPage: React.FC = () => {
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'all' | 'open' | 'paid'>('all');
   const [inspectInvoice, setInspectInvoice] = useState<InvoiceDto | null>(null);
+
+  // Coupon application state
+  const [couponCode, setCouponCode] = useState('');
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [couponSuccess, setCouponSuccess] = useState<string | null>(null);
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
 
   const {
     data: invoicesData,
@@ -81,6 +92,32 @@ export const CustomerInvoicesPage: React.FC = () => {
     window.open(`/api/invoices/${invoiceId}/print`, '_blank');
   };
 
+  const handleApplyCoupon = async () => {
+    if (!inspectInvoice || !couponCode.trim()) return;
+    setCouponError(null);
+    setCouponSuccess(null);
+    setIsApplyingCoupon(true);
+
+    try {
+      const res = await apiClient.post(`/api/invoices/${inspectInvoice.id}/apply-discount`, {
+        code: couponCode.trim().toUpperCase(),
+      });
+      const updatedInvoice = res.data.data.invoice;
+      setInspectInvoice(updatedInvoice);
+      queryClient.invalidateQueries({ queryKey: ['customer-invoices'] });
+      setCouponSuccess(`Coupon '${couponCode.trim().toUpperCase()}' applied successfully! Balance updated.`);
+      setCouponCode('');
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message ||
+        (err as Error).message ||
+        'Failed to apply coupon';
+      setCouponError(msg);
+    } finally {
+      setIsApplyingCoupon(false);
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-5xl">
       {/* Header */}
@@ -91,7 +128,7 @@ export const CustomerInvoicesPage: React.FC = () => {
             <Badge variant="success">Customer Portal</Badge>
           </div>
           <p className="text-xs text-slate-400 mt-1">
-            Review recurring billing cycles, download tax receipts, and track payment settlement statuses.
+            Review recurring billing cycles, download tax receipts, apply promo coupons, and track payment settlement statuses.
           </p>
         </div>
 
@@ -223,6 +260,12 @@ export const CustomerInvoicesPage: React.FC = () => {
                       {inv.invoiceNumber}
                     </span>
                     {getStatusBadge(inv)}
+                    {Number(inv.discountAmount) > 0 && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                        <Tag className="w-3 h-3" />
+                        -₹{Number(inv.discountAmount).toFixed(2)}
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-400">
@@ -258,7 +301,12 @@ export const CustomerInvoicesPage: React.FC = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => setInspectInvoice(inv)}
+                      onClick={() => {
+                        setInspectInvoice(inv);
+                        setCouponCode('');
+                        setCouponError(null);
+                        setCouponSuccess(null);
+                      }}
                       className="flex items-center gap-1.5 text-xs text-slate-300 hover:text-white"
                     >
                       <Eye className="w-3.5 h-3.5" />
@@ -286,7 +334,12 @@ export const CustomerInvoicesPage: React.FC = () => {
       {inspectInvoice && (
         <Modal
           isOpen={!!inspectInvoice}
-          onClose={() => setInspectInvoice(null)}
+          onClose={() => {
+            setInspectInvoice(null);
+            setCouponCode('');
+            setCouponError(null);
+            setCouponSuccess(null);
+          }}
           title={`Invoice ${inspectInvoice.invoiceNumber}`}
           maxWidth="lg"
         >
@@ -337,6 +390,70 @@ export const CustomerInvoicesPage: React.FC = () => {
               </div>
             </div>
 
+            {/* Promotional Coupon Application Section */}
+            {inspectInvoice.discountId || Number(inspectInvoice.discountAmount) > 0 ? (
+              <div className="p-3.5 rounded-lg bg-emerald-950/20 border border-emerald-500/30 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2 text-emerald-400 font-medium">
+                  <Tag className="w-4 h-4 shrink-0" />
+                  <span>
+                    Promotional Coupon Applied:{' '}
+                    <strong className="font-mono text-emerald-300">
+                      {inspectInvoice.discount?.code || 'ACTIVE_PROMO'}
+                    </strong>
+                  </span>
+                </div>
+                <span className="font-mono font-bold text-emerald-400">
+                  -₹{Number(inspectInvoice.discountAmount).toFixed(2)}
+                </span>
+              </div>
+            ) : (inspectInvoice.status === InvoiceStatus.CONFIRMED || inspectInvoice.status === InvoiceStatus.PARTIALLY_PAID) ? (
+              <div className="p-4 rounded-xl bg-slate-900/70 border border-indigo-500/20 space-y-2.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-semibold text-slate-200 flex items-center gap-1.5">
+                    <Tag className="w-4 h-4 text-indigo-400" />
+                    Have a Promo / Discount Coupon?
+                  </span>
+                  <span className="text-[11px] text-slate-400 font-mono">Try SAVE20 or FLAT500</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Input
+                    placeholder="Enter coupon code (e.g. SAVE20)"
+                    value={couponCode}
+                    onChange={(e) => {
+                      setCouponCode(e.target.value.toUpperCase());
+                      setCouponError(null);
+                      setCouponSuccess(null);
+                    }}
+                    className="font-mono uppercase text-xs"
+                  />
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    disabled={isApplyingCoupon || !couponCode.trim()}
+                    onClick={handleApplyCoupon}
+                    className="shrink-0 bg-indigo-600 hover:bg-indigo-500 text-white font-medium"
+                  >
+                    {isApplyingCoupon ? 'Applying...' : 'Apply Coupon'}
+                  </Button>
+                </div>
+
+                {couponError && (
+                  <p className="text-xs text-rose-400 flex items-center gap-1.5">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    {couponError}
+                  </p>
+                )}
+
+                {couponSuccess && (
+                  <p className="text-xs text-emerald-400 flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                    {couponSuccess}
+                  </p>
+                )}
+              </div>
+            ) : null}
+
             {/* Financial Breakdown */}
             <div className="flex justify-end">
               <div className="w-full sm:w-64 space-y-1.5 p-3 rounded-lg bg-slate-900/80 border border-slate-800 text-xs">
@@ -383,7 +500,16 @@ export const CustomerInvoicesPage: React.FC = () => {
                 Print / Download PDF Receipt
               </Button>
 
-              <Button variant="secondary" size="sm" onClick={() => setInspectInvoice(null)}>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setInspectInvoice(null);
+                  setCouponCode('');
+                  setCouponError(null);
+                  setCouponSuccess(null);
+                }}
+              >
                 Close
               </Button>
             </div>

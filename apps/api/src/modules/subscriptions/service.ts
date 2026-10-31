@@ -11,6 +11,7 @@ import {
 } from '../../common/errors.js';
 import { roundMoney, multiplyMoney } from '../../common/money.js';
 import { AuthUser } from '../../common/types.js';
+import { DiscountService } from '../discounts/service.js';
 import {
   CreateSubscriptionInput,
   TransitionSubscriptionInput,
@@ -112,6 +113,24 @@ export class SubscriptionService {
       });
     }
 
+    // Validate discount code if provided
+    let appliedDiscountNotes: string | null = null;
+    if (input.discountCode) {
+      const orderSubtotal = snapshotLines.reduce(
+        (sum, l) => sum.plus(l.subtotal),
+        new Prisma.Decimal(0),
+      );
+      const validated = await DiscountService.validateDiscount({
+        code: input.discountCode,
+        subtotal: orderSubtotal,
+      });
+      appliedDiscountNotes = `[COUPON:${validated.code}] ${validated.name} (-₹${validated.discountAmount})`;
+    }
+
+    const finalNotes = appliedDiscountNotes
+      ? (input.notes ? `${input.notes}\n${appliedDiscountNotes}` : appliedDiscountNotes)
+      : input.notes;
+
     // 5. Transaction: generate sequence number and persist subscription
     return prisma.$transaction(async (tx) => {
       const [seqRes] = await tx.$queryRaw<[{ num: string }]>`SELECT generate_subscription_number() as num`;
@@ -134,7 +153,7 @@ export class SubscriptionService {
           status: input.status,
           quoteValidUntil,
           paymentTermsDays: input.paymentTermsDays,
-          notes: input.notes,
+          notes: finalNotes,
           lines: {
             create: snapshotLines,
           },

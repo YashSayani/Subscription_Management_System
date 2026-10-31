@@ -4,7 +4,7 @@ import { requirePermission } from '../../middleware/authorize.js';
 import { validateRequest } from '../../middleware/validate.js';
 import { asyncHandler } from '../../common/asyncHandler.js';
 import { InvoiceController } from './controller.js';
-import { listInvoicesQuerySchema, cancelInvoiceSchema } from './schema.js';
+import { listInvoicesQuerySchema, cancelInvoiceSchema, applyInvoiceDiscountSchema } from './schema.js';
 
 const router = Router();
 
@@ -34,6 +34,13 @@ router.post(
   requirePermission('VOID_INVOICE'),
   validateRequest({ body: cancelInvoiceSchema }),
   asyncHandler(InvoiceController.cancelInvoice),
+);
+
+router.post(
+  '/:id/apply-discount',
+  requirePermission('APPLY_DISCOUNT'),
+  validateRequest({ body: applyInvoiceDiscountSchema }),
+  asyncHandler(InvoiceController.applyDiscount),
 );
 
 export const invoiceRoutes = router;

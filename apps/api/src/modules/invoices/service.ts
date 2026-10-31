@@ -7,6 +7,7 @@ import { UserRole } from '@brightloop/shared';
 import { NotFoundError, BadRequestError } from '../../common/errors.js';
 import { roundMoney } from '../../common/money.js';
 import { AuthUser } from '../../common/types.js';
+import { DiscountService } from '../discounts/service.js';
 import { ListInvoicesQuery } from './schema.js';
 
 export class InvoiceService {
@@ -162,6 +163,149 @@ export class InvoiceService {
       totalAmount: invoice.totalAmount.toFixed(2),
       paidAmount: invoice.paidAmount.toFixed(2),
     };
+  }
+
+  // ===================== APPLY DISCOUNT COUPON =====================
+
+  static async applyDiscount(
+    invoiceId: string,
+    code: string,
+    requestingUser: AuthUser,
+  ) {
+    const invoice = await prisma.invoice.findUnique({
+      where: { id: invoiceId },
+      include: {
+        customer: true,
+        discount: true,
+      },
+    });
+
+    if (!invoice) {
+      throw new NotFoundError(`Invoice with ID '${invoiceId}' not found`);
+    }
+
+    // Customer IDOR protection
+    if (
+      requestingUser.role === UserRole.CUSTOMER &&
+      invoice.customerId !== requestingUser.userId
+    ) {
+      throw new NotFoundError(`Invoice with ID '${invoiceId}' not found`);
+    }
+
+    if (invoice.status === InvoiceStatus.CANCELLED) {
+      throw new BadRequestError('Cannot apply discount to a cancelled invoice');
+    }
+
+    if (invoice.status === InvoiceStatus.PAID) {
+      throw new BadRequestError('Cannot apply discount to an invoice that is already fully paid');
+    }
+
+    if (invoice.discountId) {
+      throw new BadRequestError(
+        `A discount coupon (${invoice.discount?.code || 'coupon'}) has already been applied to this invoice`,
+      );
+    }
+
+    const discount = await prisma.discount.findUnique({
+      where: { code },
+    });
+
+    if (!discount || !discount.isActive) {
+      throw new BadRequestError(`Discount coupon code '${code}' is invalid or inactive`);
+    }
+
+    return prisma.$transaction(async (tx) => {
+      // 1. Redeem discount atomically
+      const redemption = await DiscountService.redeemDiscountAtomic(
+        tx,
+        discount.id,
+        new Prisma.Decimal(invoice.subtotal),
+      );
+
+      const discountAmount = redemption.discountAmount;
+      const subtotal = new Prisma.Decimal(invoice.subtotal);
+      const taxAmount = new Prisma.Decimal(invoice.taxAmount);
+      const paidAmount = new Prisma.Decimal(invoice.paidAmount);
+
+      // New total amount = (subtotal - discountAmount) + taxAmount
+      const discountedSubtotal = subtotal.minus(discountAmount);
+      const baseNewTotal = discountedSubtotal.plus(taxAmount);
+      const newTotalAmount = roundMoney(
+        baseNewTotal.lessThan(0) ? new Prisma.Decimal(0) : baseNewTotal,
+      );
+
+      const isFullyPaid = paidAmount.greaterThanOrEqualTo(newTotalAmount);
+      const newStatus = isFullyPaid
+        ? InvoiceStatus.PAID
+        : paidAmount.greaterThan(0)
+          ? InvoiceStatus.PARTIALLY_PAID
+          : invoice.status;
+
+      const updatedInvoice = await tx.invoice.update({
+        where: { id: invoiceId },
+        data: {
+          discountId: discount.id,
+          discountAmount,
+          totalAmount: newTotalAmount,
+          status: newStatus,
+        },
+        include: {
+          customer: {
+            select: { id: true, email: true, fullName: true, companyName: true, taxId: true, billingAddress: true },
+          },
+          subscription: {
+            select: { id: true, subscriptionNumber: true, plan: { select: { name: true, billingFrequency: true } } },
+          },
+          discount: true,
+          lines: {
+            include: {
+              product: { select: { id: true, name: true } },
+              variant: { select: { id: true, attributeName: true, attributeValue: true } },
+            },
+          },
+          allocations: {
+            include: {
+              payment: {
+                select: { paymentNumber: true, method: true, paymentDate: true },
+              },
+            },
+          },
+        },
+      });
+
+      // Audit Log
+      await tx.auditLog.create({
+        data: {
+          actorId: requestingUser.userId,
+          actorRole: requestingUser.role,
+          action: 'DISCOUNT_APPLIED_TO_INVOICE',
+          entityType: 'Invoice',
+          entityId: invoice.id,
+          newValues: {
+            couponCode: discount.code,
+            discountAmount: discountAmount.toString(),
+            previousTotal: invoice.totalAmount.toString(),
+            newTotal: newTotalAmount.toString(),
+          },
+        },
+      });
+
+      const balanceDue = roundMoney(newTotalAmount.minus(paidAmount));
+
+      return {
+        ...updatedInvoice,
+        isOverdue:
+          updatedInvoice.status !== InvoiceStatus.PAID &&
+          updatedInvoice.status !== InvoiceStatus.CANCELLED &&
+          new Date() > new Date(updatedInvoice.dueDate),
+        balanceDue: balanceDue.lessThan(0) ? '0.00' : balanceDue.toFixed(2),
+        subtotal: updatedInvoice.subtotal.toFixed(2),
+        discountAmount: updatedInvoice.discountAmount.toFixed(2),
+        taxAmount: updatedInvoice.taxAmount.toFixed(2),
+        totalAmount: updatedInvoice.totalAmount.toFixed(2),
+        paidAmount: updatedInvoice.paidAmount.toFixed(2),
+      };
+    });
   }
 
   // ===================== CANCEL / VOID INVOICE =====================

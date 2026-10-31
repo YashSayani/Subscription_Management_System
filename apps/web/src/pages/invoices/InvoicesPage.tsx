@@ -13,6 +13,9 @@ import {
   Receipt,
   Eye,
   RefreshCw,
+  Tag,
+  CheckCircle2,
+  AlertCircle,
 } from 'lucide-react';
 import { InvoiceDto, InvoiceStatus, UserRole } from '@brightloop/shared';
 import { apiClient } from '../../api/client';
@@ -35,6 +38,38 @@ export const InvoicesPage: React.FC = () => {
   const [cancelModalInvoice, setCancelModalInvoice] = useState<InvoiceDto | null>(null);
   const [cancelReason, setCancelReason] = useState('');
   const [actionError, setActionError] = useState<string | null>(null);
+
+  // Coupon state for modal
+  const [couponCode, setCouponCode] = useState('');
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [couponSuccess, setCouponSuccess] = useState<string | null>(null);
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+
+  const handleApplyCoupon = async () => {
+    if (!inspectInvoice || !couponCode.trim()) return;
+    setCouponError(null);
+    setCouponSuccess(null);
+    setIsApplyingCoupon(true);
+
+    try {
+      const res = await apiClient.post(`/api/invoices/${inspectInvoice.id}/apply-discount`, {
+        code: couponCode.trim().toUpperCase(),
+      });
+      const updatedInvoice = res.data.data.invoice;
+      setInspectInvoice(updatedInvoice);
+      queryClient.invalidateQueries({ queryKey: ['invoices-list'] });
+      setCouponSuccess(`Coupon '${couponCode.trim().toUpperCase()}' applied successfully! Balance updated.`);
+      setCouponCode('');
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message ||
+        (err as Error).message ||
+        'Failed to apply coupon';
+      setCouponError(msg);
+    } finally {
+      setIsApplyingCoupon(false);
+    }
+  };
 
   // 1. Fetch Invoices
   const {
@@ -536,6 +571,70 @@ export const InvoicesPage: React.FC = () => {
                 </table>
               </div>
             </div>
+
+            {/* Promotional Coupon Application Section */}
+            {inspectInvoice.discountId || Number(inspectInvoice.discountAmount) > 0 ? (
+              <div className="p-3.5 rounded-lg bg-emerald-950/20 border border-emerald-500/30 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2 text-emerald-400 font-medium">
+                  <Tag className="w-4 h-4 shrink-0" />
+                  <span>
+                    Promotional Coupon Applied:{' '}
+                    <strong className="font-mono text-emerald-300">
+                      {inspectInvoice.discount?.code || 'ACTIVE_PROMO'}
+                    </strong>
+                  </span>
+                </div>
+                <span className="font-mono font-bold text-emerald-400">
+                  -₹{Number(inspectInvoice.discountAmount).toFixed(2)}
+                </span>
+              </div>
+            ) : (inspectInvoice.status === InvoiceStatus.CONFIRMED || inspectInvoice.status === InvoiceStatus.PARTIALLY_PAID) ? (
+              <div className="p-4 rounded-xl bg-slate-900/70 border border-indigo-500/20 space-y-2.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-semibold text-slate-200 flex items-center gap-1.5">
+                    <Tag className="w-4 h-4 text-indigo-400" />
+                    Apply Promo / Discount Coupon
+                  </span>
+                  <span className="text-[11px] text-slate-400 font-mono">e.g. SAVE20 or FLAT500</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Input
+                    placeholder="Enter coupon code (e.g. SAVE20)"
+                    value={couponCode}
+                    onChange={(e) => {
+                      setCouponCode(e.target.value.toUpperCase());
+                      setCouponError(null);
+                      setCouponSuccess(null);
+                    }}
+                    className="font-mono uppercase text-xs"
+                  />
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    disabled={isApplyingCoupon || !couponCode.trim()}
+                    onClick={handleApplyCoupon}
+                    className="shrink-0 bg-indigo-600 hover:bg-indigo-500 text-white font-medium"
+                  >
+                    {isApplyingCoupon ? 'Applying...' : 'Apply Coupon'}
+                  </Button>
+                </div>
+
+                {couponError && (
+                  <p className="text-xs text-rose-400 flex items-center gap-1.5">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    {couponError}
+                  </p>
+                )}
+
+                {couponSuccess && (
+                  <p className="text-xs text-emerald-400 flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                    {couponSuccess}
+                  </p>
+                )}
+              </div>
+            ) : null}
 
             {/* Financial Summary */}
             <div className="flex justify-end">

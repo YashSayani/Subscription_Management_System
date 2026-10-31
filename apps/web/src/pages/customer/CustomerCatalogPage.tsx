@@ -8,12 +8,14 @@ import {
   Sparkles,
   ArrowRight,
   AlertCircle,
+  Tag,
 } from 'lucide-react';
 import { ProductDto, PlanDto } from '@brightloop/shared';
 import { apiClient } from '../../api/client';
 import { Button } from '../../components/ui/Button';
 import { Card, CardContent } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
+import { Input } from '../../components/ui/Input';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 
 export const CustomerCatalogPage: React.FC = () => {
@@ -25,19 +27,30 @@ export const CustomerCatalogPage: React.FC = () => {
   // Store selected plan for each product { [productId]: planId }
   const [selectedPlans, setSelectedPlans] = useState<Record<string, string>>({});
 
+  // Coupon state per product card
+  const [couponInputs, setCouponInputs] = useState<Record<string, string>>({});
+  const [appliedDiscounts, setAppliedDiscounts] = useState<
+    Record<string, { code: string; name: string; discountAmount: string; newSubtotal: string } | null>
+  >({});
+  const [couponErrors, setCouponErrors] = useState<Record<string, string | null>>({});
+  const [isValidatingCoupon, setIsValidatingCoupon] = useState<Record<string, boolean>>({});
+
   const requestQuoteMutation = useMutation({
     mutationFn: async ({
       productId,
       planId,
       variantId,
+      discountCode,
     }: {
       productId: string;
       planId: string;
       variantId?: string;
+      discountCode?: string;
     }) => {
       await apiClient.post('/api/subscriptions', {
         planId,
         status: 'QUOTATION',
+        discountCode,
         lines: [
           {
             productId,
@@ -101,56 +114,81 @@ export const CustomerCatalogPage: React.FC = () => {
   const getProductPricing = (product: ProductDto) => {
     const base = Number(product.salesPrice);
     const chosenVariantIds = selectedVariants[product.id] || [];
-    const activeVariants = product.variants.filter((v) => chosenVariantIds.includes(v.id));
-    const adjustments = activeVariants.reduce((sum, v) => sum + Number(v.priceAdjustment), 0);
-    const totalUnitPrice = base + adjustments;
+
+    const adjustments = (product.variants || [])
+      .filter((v) => chosenVariantIds.includes(v.id))
+      .reduce((acc, v) => acc + Number(v.priceAdjustment), 0);
 
     return {
       base,
       adjustments,
-      totalUnitPrice,
-      activeVariants,
+      totalUnitPrice: base + adjustments,
     };
   };
 
+  const handleValidateCoupon = async (productId: string, subtotal: number) => {
+    const code = (couponInputs[productId] || '').trim().toUpperCase();
+    if (!code) return;
+
+    setCouponErrors((prev) => ({ ...prev, [productId]: null }));
+    setIsValidatingCoupon((prev) => ({ ...prev, [productId]: true }));
+
+    try {
+      const res = await apiClient.post('/api/discounts/validate', {
+        code,
+        subtotal,
+      });
+      setAppliedDiscounts((prev) => ({ ...prev, [productId]: res.data.data }));
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message ||
+        (err as Error).message ||
+        'Invalid coupon code';
+      setCouponErrors((prev) => ({ ...prev, [productId]: msg }));
+      setAppliedDiscounts((prev) => ({ ...prev, [productId]: null }));
+    } finally {
+      setIsValidatingCoupon((prev) => ({ ...prev, [productId]: false }));
+    }
+  };
+
+  const handleRemoveCoupon = (productId: string) => {
+    setAppliedDiscounts((prev) => ({ ...prev, [productId]: null }));
+    setCouponInputs((prev) => ({ ...prev, [productId]: '' }));
+    setCouponErrors((prev) => ({ ...prev, [productId]: null }));
+  };
+
   return (
-    <div className="space-y-8 max-w-6xl">
+    <div className="space-y-6 max-w-5xl">
       {/* Header */}
       <div className="pb-6 border-b border-slate-800">
-        <div className="flex items-center gap-2.5">
-          <h1 className="text-2xl font-bold text-white tracking-tight">Product & Subscription Catalog</h1>
-          <Badge variant="success">Customer Portal</Badge>
-        </div>
+        <h1 className="text-2xl font-bold text-white tracking-tight">Software Solutions Catalog</h1>
         <p className="text-xs text-slate-400 mt-1">
-          Explore enterprise subscription products, customize specification add-ons, and choose your billing cycle.
+          Select enterprise software modules, customize service specifications, apply promo coupons, and request your subscription quotation.
         </p>
       </div>
 
-      {isProductsLoading && <LoadingSpinner message="Loading products and plan catalog..." />}
-
-      {productsError && (
-        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
-          <AlertCircle className="h-4 w-4 text-rose-400" />
-          <span>Failed to load catalog offerings.</span>
-        </div>
-      )}
-
-      {!isProductsLoading && (productsData?.products || []).length === 0 && (
-        <Card>
-          <CardContent className="py-12 text-center text-slate-400 text-xs">
-            No subscription products currently available. Please check back soon.
-          </CardContent>
-        </Card>
-      )}
-
       {/* Products Grid */}
-      {!isProductsLoading && (productsData?.products || []).length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {isProductsLoading ? (
+        <div className="py-16 flex justify-center">
+          <LoadingSpinner message="Loading software catalog..." />
+        </div>
+      ) : productsError ? (
+        <div className="p-6 text-center bg-slate-900/50 rounded-xl border border-rose-500/20 text-rose-400">
+          <AlertCircle className="w-8 h-8 mx-auto mb-2 text-rose-500" />
+          <p className="font-semibold">Unable to load software catalog.</p>
+        </div>
+      ) : (productsData?.products || []).length === 0 ? (
+        <div className="p-8 text-center bg-slate-900/30 rounded-xl border border-slate-800 text-slate-400">
+          No software products available for subscription at this time.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-6">
           {productsData?.products.map((product) => {
             const pricing = getProductPricing(product);
             const chosenPlanId =
               selectedPlans[product.id] || plansData?.plans?.[0]?.id || '';
             const chosenPlan = plansData?.plans?.find((p) => p.id === chosenPlanId);
+            const appliedDiscount = appliedDiscounts[product.id];
 
             return (
               <Card
@@ -251,16 +289,90 @@ export const CustomerCatalogPage: React.FC = () => {
                     </div>
                   )}
 
+                  {/* Promo / Discount Coupon Section */}
+                  <div className="mt-4 pt-4 border-t border-slate-800/80 space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <label className="font-semibold text-slate-300 flex items-center gap-1.5">
+                        <Tag className="h-3.5 w-3.5 text-indigo-400" />
+                        Promotional Coupon Code:
+                      </label>
+                      <span className="text-[10px] text-slate-500 font-mono">Try SAVE20 or FLAT500</span>
+                    </div>
+
+                    {appliedDiscount ? (
+                      <div className="p-2.5 rounded-lg bg-emerald-950/20 border border-emerald-500/30 flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2 text-emerald-400 font-medium">
+                          <Check className="h-3.5 w-3.5" />
+                          <span>
+                            Coupon <strong className="font-mono text-emerald-300">{appliedDiscount.code}</strong> applied:
+                            {' '}-₹{appliedDiscount.discountAmount} ({appliedDiscount.name})
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveCoupon(product.id)}
+                          className="text-[11px] text-slate-400 hover:text-rose-400 font-medium ml-2"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <Input
+                          placeholder="Enter coupon code (e.g. SAVE20)"
+                          value={couponInputs[product.id] || ''}
+                          onChange={(e) => {
+                            const val = e.target.value.toUpperCase();
+                            setCouponInputs((prev) => ({ ...prev, [product.id]: val }));
+                            setCouponErrors((prev) => ({ ...prev, [product.id]: null }));
+                          }}
+                          className="font-mono uppercase text-xs"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={isValidatingCoupon[product.id] || !couponInputs[product.id]?.trim()}
+                          onClick={() => handleValidateCoupon(product.id, pricing.totalUnitPrice)}
+                          className="shrink-0 text-xs border-indigo-700/60 hover:bg-indigo-950/40 text-indigo-300"
+                        >
+                          {isValidatingCoupon[product.id] ? 'Checking...' : 'Apply Coupon'}
+                        </Button>
+                      </div>
+                    )}
+
+                    {couponErrors[product.id] && (
+                      <p className="text-[11px] text-rose-400 flex items-center gap-1">
+                        <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                        {couponErrors[product.id]}
+                      </p>
+                    )}
+                  </div>
+
                   {/* Dynamic Pricing Calculation Summary */}
                   <div className="mt-6 p-4 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between">
                     <div>
                       <div className="text-[11px] text-slate-400">Calculated Subscription Price</div>
-                      <div className="text-2xl font-bold font-mono text-white mt-0.5">
-                        ₹{pricing.totalUnitPrice.toFixed(2)}
-                        <span className="text-xs font-normal text-slate-400 font-sans ml-1">
-                          / {chosenPlan?.billingFrequency.toLowerCase() || 'cycle'}
-                        </span>
-                      </div>
+                      {appliedDiscount ? (
+                        <div className="flex items-baseline gap-2 mt-0.5">
+                          <span className="text-2xl font-bold font-mono text-emerald-400">
+                            ₹{(pricing.totalUnitPrice - parseFloat(appliedDiscount.discountAmount)).toFixed(2)}
+                          </span>
+                          <span className="text-xs line-through text-slate-500 font-mono">
+                            ₹{pricing.totalUnitPrice.toFixed(2)}
+                          </span>
+                          <span className="text-xs font-normal text-slate-400 font-sans">
+                            / {chosenPlan?.billingFrequency.toLowerCase() || 'cycle'}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="text-2xl font-bold font-mono text-white mt-0.5">
+                          ₹{pricing.totalUnitPrice.toFixed(2)}
+                          <span className="text-xs font-normal text-slate-400 font-sans ml-1">
+                            / {chosenPlan?.billingFrequency.toLowerCase() || 'cycle'}
+                          </span>
+                        </div>
+                      )}
                       {pricing.adjustments > 0 && (
                         <div className="text-[10px] text-emerald-400 mt-0.5">
                           Base ₹{pricing.base.toFixed(2)} + Add-ons ₹{pricing.adjustments.toFixed(2)}
@@ -278,6 +390,7 @@ export const CustomerCatalogPage: React.FC = () => {
                           productId: product.id,
                           planId: chosenPlanId,
                           variantId: chosenVariantId,
+                          discountCode: appliedDiscount ? appliedDiscount.code : undefined,
                         });
                       }}
                     >
