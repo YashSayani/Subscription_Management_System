@@ -199,6 +199,72 @@ export interface QuotationTemplateDto {
   createdAt: string;
 }
 
+// Invoice DTOs
+export interface InvoiceLineDto {
+  id: string;
+  invoiceId: string;
+  productId: string;
+  variantId?: string | null;
+  description: string;
+  quantity: number;
+  unitPrice: string | number;
+  variantAdjustment: string | number;
+  taxRate: string | number;
+  subtotal: string | number;
+  taxAmount: string | number;
+  totalAmount: string | number;
+  createdAt: string;
+}
+
+export interface InvoiceDto {
+  id: string;
+  invoiceNumber: string;
+  subscriptionId: string;
+  subscription?: {
+    id: string;
+    subscriptionNumber: string;
+    plan?: {
+      name: string;
+      billingFrequency: BillingFrequency;
+    };
+  };
+  customerId: string;
+  customer?: {
+    id: string;
+    email: string;
+    fullName: string;
+    companyName?: string | null;
+    taxId?: string | null;
+    billingAddress?: string | null;
+  };
+  status: InvoiceStatus;
+  isOverdue: boolean;
+  periodStartDate: string;
+  periodEndDate: string;
+  dueDate: string;
+  subtotal: string | number;
+  discountAmount: string | number;
+  taxAmount: string | number;
+  totalAmount: string | number;
+  paidAmount: string | number;
+  balanceDue: string | number;
+  discountId?: string | null;
+  notes?: string | null;
+  lines: InvoiceLineDto[];
+  allocations?: Array<{
+    id: string;
+    amount: string | number;
+    createdAt: string;
+    payment?: {
+      paymentNumber: string;
+      method: string;
+      paymentDate: string;
+    };
+  }>;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ApiErrorResponse {
   success: false;
   error: {

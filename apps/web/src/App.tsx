@@ -23,6 +23,8 @@ import { CatalogPage } from './pages/catalog/CatalogPage';
 import { CustomerCatalogPage } from './pages/customer/CustomerCatalogPage';
 import { SubscriptionsPage } from './pages/subscriptions/SubscriptionsPage';
 import { CustomerSubscriptionsPage } from './pages/customer/CustomerSubscriptionsPage';
+import { InvoicesPage } from './pages/invoices/InvoicesPage';
+import { CustomerInvoicesPage } from './pages/customer/CustomerInvoicesPage';
 
 const RootRedirect: React.FC = () => {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -71,16 +73,7 @@ export default function App() {
               <Route path="diagnostics" element={<DiagnosticsPage />} />
               <Route path="catalog" element={<CatalogPage />} />
               <Route path="subscriptions" element={<SubscriptionsPage />} />
-              <Route
-                path="invoices"
-                element={
-                  <PlaceholderPage
-                    title="Invoices & Recurring Billing"
-                    modulePhase="Step P8"
-                    description="Automated invoice generation, tax snapshots, and payment tracking."
-                  />
-                }
-              />
+              <Route path="invoices" element={<InvoicesPage />} />
               <Route
                 path="payments"
                 element={
@@ -120,16 +113,7 @@ export default function App() {
               <Route index element={<StaffDashboard />} />
               <Route path="catalog" element={<CatalogPage />} />
               <Route path="subscriptions" element={<SubscriptionsPage />} />
-              <Route
-                path="invoices"
-                element={
-                  <PlaceholderPage
-                    title="Invoices & Statements"
-                    modulePhase="Step P8"
-                    description="Review billing cycles, due dates, and settlement statuses."
-                  />
-                }
-              />
+              <Route path="invoices" element={<InvoicesPage />} />
               <Route
                 path="payments"
                 element={
@@ -159,16 +143,7 @@ export default function App() {
               <Route index element={<CustomerSubscriptionsPage />} />
               <Route path="dashboard" element={<CustomerDashboard />} />
               <Route path="catalog" element={<CustomerCatalogPage />} />
-              <Route
-                path="invoices"
-                element={
-                  <PlaceholderPage
-                    title="Billing & Invoices"
-                    modulePhase="Step P8"
-                    description="View recurring invoices, payments, and PDF receipts."
-                  />
-                }
-              />
+              <Route path="invoices" element={<CustomerInvoicesPage />} />
               <Route
                 path="profile"
                 element={

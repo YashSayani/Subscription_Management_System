@@ -439,7 +439,7 @@ sequenceDiagram
 | **P5** | **Catalog Module (Products & Plans)**| Must | Dev | **DONE** | `main` | Dev (Typecheck, Lint 0 errors/0 warnings, Vitest 47/47 OK, Vite Build in 10.36s) |
 | **P6** | **Quotations & Subscriptions Lifecycle**| Must | Dev | **DONE** | `main` | Dev (Typecheck, Lint 0 errors/0 warnings, Vitest 60/60 OK, Vite Build in 11.35s) |
 | **P7** | **Idempotent Billing Worker** | Must | Dev | **DONE** | `main` | Dev (Typecheck, Lint 0 errors/0 warnings, Vitest 66/66 OK, Vite Build in 8.36s) |
-| **P8** | **Invoicing Engine & PDF Export** | Must | Dev | **TODO** | `feat/invoices` | - |
+| **P8** | **Invoicing Engine & PDF Export** | Must | Dev | **DONE** | `main` | Dev (Typecheck, Lint 0 errors/0 warnings, Vitest 75/75 OK, Vite Build in 9.17s) |
 | **P9** | **Manual Payments & Allocation Engine**| Must | Dev | **TODO** | `feat/payments` | - |
 | **P10**| **Discounts & Atomic Counter Engine**| Must | Dev | **TODO** | `feat/discounts` | - |
 | **P11**| **Real-time Analytics Dashboard** | Must | Dev | **TODO** | `feat/analytics` | - |
@@ -463,6 +463,7 @@ sequenceDiagram
   * `[2026-10-31] [P5] [Dev] [main]: Catalog Module (Products, Variants & Plans) deployed | Built Catalog service, controller, and routes for Products, database-driven Product Variants with configurable price adjustments (e.g. brand Odoo adds 560), and subscription Plans with billing frequencies and renewal rules. Implemented decimal calculation engine preventing float inaccuracy and negative pricing. Created Admin/Staff Catalog management UI with product/plan creation modals and live variant editor, plus Customer Catalog portal with interactive variant toggles and live dynamic price calculation | Vitest suite expanded to 47/47 passed tests in 10.91s (13 catalog tests, 15 auth tests, 11 foundation tests, 6 schema tests, 2 health tests); Typecheck passed across 4 workspaces (0 errors); Lint passed with 0 errors 0 warnings; Vite production build completed in 10.36s | Ready for Step P6 (Quotations & Subscriptions Lifecycle)`
   * `[2026-10-31] [P6] [Dev] [main]: Quotations & Subscriptions Lifecycle deployed | Built unified subscription data model (Decision D-02: quotation is a subscription row with status QUOTATION), sequence number generator (SUB-YYYY-XXXXX), line item price/tax snapshots protecting historic records against catalog edits, full state machine transitions (DRAFT -> QUOTATION -> CONFIRMED -> ACTIVE -> PAUSED -> CLOSED), pause without retroactive backfill (D-05), early closure without refunds (D-06), and strict IDOR scoping. Built Subscriptions workbench for Admin/Staff and Customer Subscriptions Portal with one-click quote confirmation | Vitest suite expanded to 60/60 passed tests in 24.13s (13 subscriptions tests, 13 catalog tests, 15 auth tests, 11 foundation tests, 6 schema tests, 2 health tests); Typecheck passed across 4 workspaces (0 errors); Lint passed 0 errors 0 warnings; Vite production build completed in 11.35s | Ready for Step P7 (Idempotent Billing Worker)`
   * `[2026-10-31] [P7] [Dev] [main]: Idempotent Billing Worker deployed | Built BillingEngine featuring PostgreSQL SELECT ... FOR UPDATE SKIP LOCKED for concurrent safe batching, atomic transaction executing period calculation, sequence invoice issuance (INV-YYYY-XXXXX), snapshot line transfer, next billing date advancement, and BillingAttempt logging. Enforced composite UNIQUE(subscription_id, period_start_date) physical double-billing prevention. Created standalone worker process runner (src/worker.ts, npm run dev:worker) and Admin on-demand trigger endpoints | Vitest suite expanded to 66/66 passed tests in 20.27s (6 billing worker tests, 13 subscriptions tests, 13 catalog tests, 15 auth tests, 11 foundation tests, 6 schema tests, 2 health tests); Typecheck passed across 4 workspaces (0 errors); Lint passed 0 errors 0 warnings; Vite production build completed in 8.36s | Ready for Step P8 (Invoicing Engine & PDF Export)`
+  * `[2026-10-31] [P8] [Dev] [main]: Invoicing Engine & PDF Export deployed | Built InvoiceService, controller, routes, derived overdue evaluation (Decision D-09: dueDate < NOW && status IN (CONFIRMED, PARTIALLY_PAID)), balance due calculation, Admin invoice voiding with zero-payment constraint, printable HTML/PDF export endpoint formatted with @media print, Admin/Staff InvoicesPage with live KPIs, overdue alert chips, and billing cycle trigger, and Customer CustomerInvoicesPage with itemized breakdown and printable statements | Vitest suite expanded to 75/75 passed tests in 24.76s across 8 test suites (9 invoices tests, 6 billing worker tests, 13 subscriptions tests, 13 catalog tests, 15 auth tests, 11 foundation tests, 6 schema tests, 2 health tests); Typecheck passed across 4 workspaces (0 errors); Lint passed 0 errors 0 warnings; Vite production build completed in 9.17s | Ready for Step P9 (Manual Payments & Allocation Engine)`
 
 ---
 
@@ -470,27 +471,24 @@ sequenceDiagram
 
 | Issue ID | Module | Description | Severity | Workaround / Planned Fix |
 | :--- | :--- | :--- | :---: | :--- |
-| *None* | - | Billing worker, Subscriptions, Catalog, Auth, and Frontend modules fully verified. | - | - |
+| *None* | - | Invoices, Billing worker, Subscriptions, Catalog, Auth, and Frontend modules fully verified. | - | - |
 
 ---
 
-## 10. NEXT PROMPT: STEP P8 INVOICING ENGINE & PDF EXPORT
+## 10. NEXT PROMPT: STEP P9 MANUAL PAYMENTS & ALLOCATION ENGINE
 
-### Objective for Step P8
-Implement the Invoicing management module in both backend (`apps/api/src/modules/invoices/`) and frontend:
-1. **Invoice State Machine & Status:**
-   - Statuses: `DRAFT`, `CONFIRMED`, `PARTIALLY_PAID`, `PAID`, `CANCELLED`.
-   - As per locked architectural decision **D-09**, `OVERDUE` is dynamically derived (`dueDate < NOW() && status IN ('CONFIRMED', 'PARTIALLY_PAID')`), NOT stored as an out-of-sync database column.
-2. **Backend Services & Endpoints:**
-   - Invoices list with search, status filters (including computed overdue filter), customer filter, and date ranges.
-   - Invoice details endpoint fetching snapshot lines, allocations, and customer credit balance.
-   - Invoice cancellation / voiding (Admin only) with state transition checks.
-   - Clean printable HTML/PDF export endpoint formatted for printing and download.
-3. **Frontend Interfaces:**
-   - Admin & Staff Invoices Workbench with overdue warning chips, payment tracking, and detail drawer.
-   - Customer Portal Invoices page with view and print capabilities.
-4. **Automated Test Suite:**
-   - Derived overdue calculation verification.
-   - Admin voiding vs customer rejection.
-   - Financial line arithmetic (subtotal + tax - discount = total).
-   - Vitest suite asserting skip locked locking, invoice generation, sequence number generation, advancing next billing date, and idempotency under concurrent trigger.
+### Objective for Step P9
+Implement the manual payment recording and allocation engine in both backend (`apps/api/src/modules/payments/`) and frontend:
+1. **Manual Payment Recording & Sequence:**
+   - Admin & Staff can record manual offline payments (Bank Transfer, Cheque, Cash, Credit Card Offline) via sequence generator `PAY-YYYY-XXXXX`.
+   - Records customer reference, payment date, reference/cheque number, and total payment amount.
+2. **Atomic Payment Allocation:**
+   - Direct allocation of payment to one or more open/overdue invoices within an atomic database transaction.
+   - Updates invoice `paid_amount` and transitions status (`CONFIRMED` $\to$ `PARTIALLY_PAID` $\to$ `PAID`).
+   - Prevents over-allocation via SQL CHECK constraint `paid_amount <= total_amount`.
+3. **Surplus Credit Balance Ledger (Decision D-07):**
+   - Any payment amount exceeding outstanding invoice balances is credited to `User.credit_balance` with audit trail.
+   - Future invoices can be settled by drawing against existing customer credit balance.
+4. **Frontend Payments Workbench:**
+   - Admin/Staff payment recording form with invoice multi-selection and allocation breakdown.
+   - Customer Portal receipt viewer and available credit display.
