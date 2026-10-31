@@ -436,7 +436,7 @@ sequenceDiagram
 | **P2** | **Backend Foundation & Middlewares**| Must | Dev | **DONE** | `main` | Dev (AppErrors, Zod Validator, CSRF Guard, 19/19 Tests OK) |
 | **P3** | **Authentication & RBAC Engine** | Must | Dev | **DONE** | `main` | Dev (Dual Cookie, Token Family Reuse Revocation, RBAC, 34/34 Tests OK) |
 | **P4** | **Frontend Foundation & Design System**| Must | Dev | **DONE** | `main` | Dev (Typecheck, Lint 0 errors, Vitest 34/34 OK, Vite Build in 6.67s) |
-| **P5** | **Catalog Module (Products & Plans)**| Must | Dev | **TODO** | `feat/catalog` | - |
+| **P5** | **Catalog Module (Products & Plans)**| Must | Dev | **DONE** | `main` | Dev (Typecheck, Lint 0 errors/0 warnings, Vitest 47/47 OK, Vite Build in 10.36s) |
 | **P6** | **Quotations & Subscriptions Lifecycle**| Must | Dev | **TODO** | `feat/subscriptions`| - |
 | **P7** | **Idempotent Billing Worker** | Must | Dev | **TODO** | `feat/billing-worker`| - |
 | **P8** | **Invoicing Engine & PDF Export** | Must | Dev | **TODO** | `feat/invoices` | - |
@@ -460,6 +460,7 @@ sequenceDiagram
   * `[2026-10-31] [P2] [Dev] [main]: Core backend foundation and security middlewares implemented | Built AppError hierarchy, generic Zod validateRequest middleware, anti-CSRF custom header protection, global and auth rate limiters, and standardized sendSuccess/sendError API envelope | Vitest suite expanded to 19/19 passed tests in 1.80s (11 foundation tests, 6 schema integrity tests, 2 health tests); Typecheck, Lint (0 errors 0 warnings), and production Build passed | Ready for Step P3 (Authentication & RBAC Engine)`
   * `[2026-10-31] [P3] [Dev] [main]: Authentication & RBAC Engine deployed | Implemented 9+ char complex password policy with bcrypt (12 rounds), dual HttpOnly SameSite=Strict cookies, rotating refresh token with SHA-256 persistence and family reuse revocation, generic login errors preventing enumeration, registration mass-assignment protection, Admin-only staff creation, and typed permission map | Vitest suite expanded to 34/34 passed tests in 4.73s (15 auth tests, 11 foundation tests, 6 schema tests, 2 health tests); Typecheck, Lint (0 errors), and Build passed | Ready for Step P4 (Frontend Foundation & Design System)`
   * `[2026-10-31] [P4] [Dev] [main]: Frontend Foundation & Design System deployed | Built Axios client with X-Requested-With CSRF injection and silent 401 token refresh queue, AuthContext/useAuth hook, modular UI design system (Button, Input, Badge, Card, Modal, Table, EmptyState, LoadingSpinner), 4 role-specific layout shells (AdminLayout, StaffLayout, CustomerLayout, AuthLayout) with Lucide navigation and credit balance indicator, client-side ProtectedRoute guard with role-based redirection, React Hook Form + Zod Login and Register pages with real-time password strength checklist indicator, DiagnosticsPage with live database round-trip latency polling, and role-specific dashboard views | Typecheck passed across 4 workspaces (0 errors); Lint passed 0 errors 0 warnings; Vitest suite passed 34/34 tests; Vite production build completed in 6.67s | Ready for Step P5 (Catalog Module)`
+  * `[2026-10-31] [P5] [Dev] [main]: Catalog Module (Products, Variants & Plans) deployed | Built Catalog service, controller, and routes for Products, database-driven Product Variants with configurable price adjustments (e.g. brand Odoo adds 560), and subscription Plans with billing frequencies and renewal rules. Implemented decimal calculation engine preventing float inaccuracy and negative pricing. Created Admin/Staff Catalog management UI with product/plan creation modals and live variant editor, plus Customer Catalog portal with interactive variant toggles and live dynamic price calculation | Vitest suite expanded to 47/47 passed tests in 10.91s (13 catalog tests, 15 auth tests, 11 foundation tests, 6 schema tests, 2 health tests); Typecheck passed across 4 workspaces (0 errors); Lint passed with 0 errors 0 warnings; Vite production build completed in 10.36s | Ready for Step P6 (Quotations & Subscriptions Lifecycle)`
 
 ---
 
@@ -467,22 +468,28 @@ sequenceDiagram
 
 | Issue ID | Module | Description | Severity | Workaround / Planned Fix |
 | :--- | :--- | :--- | :---: | :--- |
-| *None* | - | Frontend foundation and auth workflows fully validated. Zero debt. | - | - |
+| *None* | - | Catalog, Auth, and Frontend modules fully verified with zero warnings. | - | - |
 
 ---
 
-## 10. NEXT PROMPT: STEP P5 CATALOG MODULE (PRODUCTS, VARIANTS & PLANS)
+## 10. NEXT PROMPT: STEP P6 QUOTATIONS & SUBSCRIPTIONS LIFECYCLE
 
-### Objective for Step P5
-Implement the Catalog domain module in both backend (`apps/api/src/modules/catalog/`) and frontend:
-1. **Backend Catalog Service & Endpoints:**
-   - Products CRUD with soft-delete (`archivedAt`), types (`SERVICE`, `PHYSICAL`), cost price, and sales price.
-   - Configurable product variants with price adjustments stored in data (e.g. brand "Odoo" adds 560; must be database-driven, not hardcoded).
-   - Plans CRUD (daily, weekly, monthly, yearly frequencies, minimum duration, minimum quantity, auto-close / renewal terms).
-   - Customer-accessible catalog query endpoints (active products and plans with real calculated pricing).
-   - Admin/Staff-accessible management endpoints with strict RBAC and Zod request validation.
-2. **Frontend Catalog Views:**
-   - Admin & Staff Catalog Management table / cards with variant editor and pricing adjustment controls.
-   - Customer Portal Catalog Browser where customers can view products, select brand variants, see live price updates, and choose billing frequency.
-3. **Integration Tests:**
-   - Vitest suite testing product and variant creation, decimal price calculation with variant adjustment, soft deletion, and RBAC authorization guards.
+### Objective for Step P6
+Implement the complete Subscription & Quotation Lifecycle module in both backend (`apps/api/src/modules/subscriptions/`) and frontend:
+1. **Unified Relational Model Enforcement:**
+   - As per locked architectural decision **D-02**, a Quotation is a `Subscription` row with `status = 'QUOTATION'`.
+   - Distinct sequence-generated unique subscription number (`generate_subscription_number()` -> `SUB-YYYY-XXXXX`).
+   - Line items snapshot unit sales price, cost price, and applied variant adjustments.
+2. **State Machine Transitions:**
+   - `DRAFT` $\longrightarrow$ `QUOTATION` $\longrightarrow$ `CONFIRMED` $\longrightarrow$ `ACTIVE` $\longrightarrow$ `PAUSED` $\longrightarrow$ `CLOSED`.
+   - Pause action stops billing cycle; resume action sets `next_billing_date = resume_date` (as per **D-05**).
+   - Early termination transitions subscription to `CLOSED` without issuing retroactive refunds (as per **D-06**).
+3. **Quotation Templates:**
+   - Multi-line reusable quotation templates stored in `quotation_templates`.
+4. **Backend Services & Endpoints:**
+   - Customer-scoped and Admin/Staff-scoped endpoints for creating quotes, converting quotes to active subscriptions, pausing, resuming, and closing.
+5. **Frontend Interfaces:**
+   - Admin & Staff Quotation / Subscription lifecycle workbench with state transition badges and action buttons.
+   - Customer Portal Subscription list & quote confirmation view.
+6. **Automated Test Suite:**
+   - Strict transition table assertions, invalid transition rejection, snapshot pricing immutability, and sequence number generation.

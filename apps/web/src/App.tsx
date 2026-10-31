@@ -19,6 +19,8 @@ import { StaffDashboard } from './pages/staff/StaffDashboard';
 import { CustomerDashboard } from './pages/customer/CustomerDashboard';
 import { DiagnosticsPage } from './pages/DiagnosticsPage';
 import { PlaceholderPage } from './pages/PlaceholderPage';
+import { CatalogPage } from './pages/catalog/CatalogPage';
+import { CustomerCatalogPage } from './pages/customer/CustomerCatalogPage';
 
 const RootRedirect: React.FC = () => {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -65,16 +67,7 @@ export default function App() {
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<AdminDashboard />} />
               <Route path="diagnostics" element={<DiagnosticsPage />} />
-              <Route
-                path="catalog"
-                element={
-                  <PlaceholderPage
-                    title="Products & Plans Catalog"
-                    modulePhase="Step P5"
-                    description="Configure products, pricing variants, add-ons, and recurring billing frequencies."
-                  />
-                }
-              />
+              <Route path="catalog" element={<CatalogPage />} />
               <Route
                 path="subscriptions"
                 element={
@@ -132,16 +125,7 @@ export default function App() {
           <Route element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.STAFF]} />}>
             <Route path="/staff" element={<StaffLayout />}>
               <Route index element={<StaffDashboard />} />
-              <Route
-                path="catalog"
-                element={
-                  <PlaceholderPage
-                    title="Catalog Browser"
-                    modulePhase="Step P5"
-                    description="Browse available products, plans, and add-on price configurations."
-                  />
-                }
-              />
+              <Route path="catalog" element={<CatalogPage />} />
               <Route
                 path="subscriptions"
                 element={
@@ -189,16 +173,7 @@ export default function App() {
           <Route element={<ProtectedRoute allowedRoles={[UserRole.CUSTOMER]} />}>
             <Route path="/portal" element={<CustomerLayout />}>
               <Route index element={<CustomerDashboard />} />
-              <Route
-                path="catalog"
-                element={
-                  <PlaceholderPage
-                    title="Product & Plan Catalog"
-                    modulePhase="Step P5"
-                    description="Browse available software packages and request subscription quotes."
-                  />
-                }
-              />
+              <Route path="catalog" element={<CustomerCatalogPage />} />
               <Route
                 path="invoices"
                 element={

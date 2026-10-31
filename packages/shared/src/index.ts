@@ -83,6 +83,60 @@ export interface ApiSuccessResponse<T> {
   meta?: Record<string, unknown>;
 }
 
+// Catalog DTOs
+export interface ProductVariantDto {
+  id: string;
+  productId: string;
+  attributeName: string;
+  attributeValue: string;
+  priceAdjustment: string | number;
+  isAvailable: boolean;
+  createdAt?: string;
+}
+
+export interface ProductDto {
+  id: string;
+  name: string;
+  description?: string | null;
+  type: string;
+  salesPrice: string | number;
+  costPrice: string | number;
+  notes?: string | null;
+  isAvailable: boolean;
+  createdAt: string;
+  variants: ProductVariantDto[];
+}
+
+export interface PlanDto {
+  id: string;
+  name: string;
+  description?: string | null;
+  billingFrequency: BillingFrequency;
+  minQuantity: number;
+  availableFrom?: string | null;
+  availableUntil?: string | null;
+  autoClose: boolean;
+  pauseAllowed: boolean;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface PriceCalculationDto {
+  productId: string;
+  productName: string;
+  basePrice: string;
+  variants: Array<{
+    id: string;
+    attributeName: string;
+    attributeValue: string;
+    priceAdjustment: string;
+  }>;
+  sumAdjustments: string;
+  unitPrice: string;
+  quantity: number;
+  subtotal: string;
+}
+
 export interface ApiErrorResponse {
   success: false;
   error: {
