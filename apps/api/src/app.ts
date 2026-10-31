@@ -7,6 +7,9 @@ import { env } from './config/env.js';
 import { logger } from './common/logger.js';
 import { healthRouter } from './routes/health.routes.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { csrfProtection } from './middleware/csrf.js';
+import { globalLimiter } from './middleware/rateLimiter.js';
+import { sendError } from './common/response.js';
 
 export const app = express();
 
@@ -21,10 +24,18 @@ app.use(
   }),
 );
 
+// Global Rate Limiting (bypassed in test environment)
+if (env.NODE_ENV !== 'test') {
+  app.use(globalLimiter);
+}
+
 // Body parsing with size limit
 app.use(express.json({ limit: '100kb' }));
 app.use(express.urlencoded({ extended: true, limit: '100kb' }));
 app.use(cookieParser());
+
+// Anti-CSRF protection on all state-changing endpoints
+app.use(csrfProtection);
 
 // HTTP Request logging
 if (env.NODE_ENV !== 'test') {
@@ -43,13 +54,7 @@ app.use('/api', healthRouter);
 
 // 404 Route Handler
 app.use((_req, res) => {
-  res.status(404).json({
-    success: false,
-    error: {
-      code: 'NOT_FOUND',
-      message: 'The requested API route was not found',
-    },
-  });
+  sendError(res, 'NOT_FOUND', 'The requested API route was not found', undefined, 404);
 });
 
 // Centralized Error Handling Middleware

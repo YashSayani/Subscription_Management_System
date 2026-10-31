@@ -433,7 +433,7 @@ sequenceDiagram
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
 | **P0** | **Bootstrap & Monorepo Setup** | Must | Dev | **DONE** | `main` | Dev (Typecheck, Lint, Test, Build, Health OK) |
 | **P1** | **Database Schema & Migrations** | Must | Dev | **DONE** | `main` | Dev (Prisma Migrate, Sequences, CHECKs, 8/8 Tests OK) |
-| **P2** | **Backend Foundation & Middlewares**| Must | Dev | **TODO** | `feat/backend-core` | - |
+| **P2** | **Backend Foundation & Middlewares**| Must | Dev | **DONE** | `main` | Dev (AppErrors, Zod Validator, CSRF Guard, 19/19 Tests OK) |
 | **P3** | **Authentication & RBAC Engine** | Must | Dev | **TODO** | `feat/auth-rbac` | - |
 | **P4** | **Frontend Foundation & Design System**| Must | Dev | **TODO** | `feat/web-core` | - |
 | **P5** | **Catalog Module (Products & Plans)**| Must | Dev | **TODO** | `feat/catalog` | - |
@@ -457,6 +457,7 @@ sequenceDiagram
   * `[2026-10-31] [P0-Prep] [Lead Architect] [main]: CLAUDE.md created | Initialized single source of truth defining system architecture, state machines, financial and security protocols, and 16-phase roadmap | Inspection of CLAUDE.md completed | Proceed to P0 Bootstrap`
   * `[2026-10-31] [P0] [Dev] [main]: Monorepo bootstrap initialized | Configured npm workspaces (@brightloop/api, @brightloop/web, @brightloop/database, @brightloop/shared), TypeScript strict base, ESLint, Prettier, Vitest, Tailwind CSS, Vite proxy, Prisma client singleton, and real PostgreSQL health check endpoint | Typecheck passed across all 4 workspaces; ESLint passed 0 errors 0 warnings; Vitest passed 2/2 tests in 126ms; Build completed in 5.77s; Live health check returned database: connected=true, latency=2ms, db=brightloop | Ready for Step P1 (Schema & Migrations)`
   * `[2026-10-31] [P1] [Dev] [main]: Complete relational schema & PostgreSQL migrations deployed | Created 15 models with NUMERIC(14,2) currency precision, snapshot line items, native PostgreSQL sequences (sub_seq, inv_seq, pay_seq), formatted number generators, SQL CHECK constraints for negative price/overpayment prevention, composite unique key (subscription_id, period_start_date) on invoices, and composite query indexes | Prisma migrate deploy succeeded; Vitest suite passed 8/8 tests in 1.70s; Typecheck, Lint, and Build passed with 0 errors | Ready for Step P2 (Backend Foundation & Middlewares)`
+  * `[2026-10-31] [P2] [Dev] [main]: Core backend foundation and security middlewares implemented | Built AppError hierarchy, generic Zod validateRequest middleware, anti-CSRF custom header protection, global and auth rate limiters, and standardized sendSuccess/sendError API envelope | Vitest suite expanded to 19/19 passed tests in 1.80s (11 foundation tests, 6 schema integrity tests, 2 health tests); Typecheck, Lint (0 errors 0 warnings), and production Build passed | Ready for Step P3 (Authentication & RBAC Engine)`
 
 ---
 
@@ -464,19 +465,22 @@ sequenceDiagram
 
 | Issue ID | Module | Description | Severity | Workaround / Planned Fix |
 | :--- | :--- | :--- | :---: | :--- |
-| *None* | - | Database schema and migrations applied with full integrity constraints. Zero debt. | - | - |
+| *None* | - | Backend foundation and security middlewares verified with full test coverage. Zero debt. | - | - |
 
 ---
 
-## 10. NEXT PROMPT: STEP P2 BACKEND FOUNDATION & MIDDLEWARES
+## 10. NEXT PROMPT: STEP P3 AUTHENTICATION & RBAC ENGINE
 
-### Objective for Step P2
-Establish production-ready core backend infrastructure in `apps/api`: centralized custom AppError classes, Zod request validation middleware (body, params, query), Helmet configuration, CORS allowlist, rate limiting (global + strict auth limiter), custom anti-CSRF request header validation, and a standardized API response envelope utility.
+### Objective for Step P3
+Implement complete backend authentication and role-based access control (RBAC): customer registration, secure login with bcrypt password comparison, access token JWT generation (15 min) and rotating refresh token generation with SHA-256 hashed database storage and reuse detection, dual HttpOnly SameSite=Strict cookie management, typed permission map middleware (`requirePermission`), and Admin-only staff user creation.
 
-### Exact Deliverables for P2
-1. `src/common/errors.ts`: Typed `AppError` hierarchy (`NotFoundError`, `BadRequestError`, `UnauthorizedError`, `ForbiddenError`, `ConflictError`).
-2. `src/middleware/validate.ts`: Generic Zod request validator parsing and attaching typed data.
-3. `src/middleware/csrf.ts`: Header guard requiring `X-Requested-With` or Anti-CSRF on state-changing requests (`POST`, `PUT`, `PATCH`, `DELETE`).
-4. `src/middleware/rateLimiter.ts`: Global and auth-specific rate limiting via `express-rate-limit`.
+### Exact Deliverables for P3
+1. `src/modules/auth/schema.ts`: Zod validation schemas for registration, login, refresh, and password reset. Password rule: min 9 chars with uppercase, lowercase, and special character.
+2. `src/modules/auth/service.ts`: Domain logic for registration (hardcoded role `CUSTOMER`), login (generic error on bad creds), token generation, token refresh with family invalidation on replay detection, and logout revocation.
+3. `src/modules/auth/controller.ts` & `src/modules/auth/routes.ts`: Cookie-setting route handlers for `/api/auth/register`, `/api/auth/login`, `/api/auth/refresh`, `/api/auth/logout`.
+4. `src/middleware/authenticate.ts`: JWT verification middleware extracting `{ userId, role, customerId }` from HttpOnly cookie.
+5. `src/middleware/authorize.ts`: RBAC permission middleware enforcing the role-permission matrix.
+6. `src/modules/users/service.ts` & routes: Admin-only staff creation endpoint (`POST /api/users/staff`).
+7. Comprehensive integration test suite verifying registration, login cookies, token rotation, reuse revocation, role enforcement, and mass-assignment protection.
 5. `src/common/response.ts`: Standardized response helper (`sendSuccess`, `sendError`).
 6. Integration test suite verifying validation failures, CSRF protection, and error formatting.
