@@ -137,6 +137,68 @@ export interface PriceCalculationDto {
   subtotal: string;
 }
 
+// Subscription & Quotation DTOs
+export interface SubscriptionLineDto {
+  id: string;
+  subscriptionId: string;
+  productId: string;
+  variantId?: string | null;
+  product?: {
+    id: string;
+    name: string;
+    salesPrice: string | number;
+  };
+  variant?: {
+    id: string;
+    attributeName: string;
+    attributeValue: string;
+    priceAdjustment: string | number;
+  } | null;
+  quantity: number;
+  unitPrice: string | number;
+  variantAdjustment: string | number;
+  taxRate: string | number;
+  subtotal: string | number;
+  taxAmount: string | number;
+  totalAmount: string | number;
+  createdAt: string;
+}
+
+export interface SubscriptionDto {
+  id: string;
+  subscriptionNumber: string;
+  customerId: string;
+  customer?: {
+    id: string;
+    email: string;
+    fullName: string;
+    companyName?: string | null;
+  };
+  planId: string;
+  plan?: PlanDto;
+  status: SubscriptionStatus;
+  quoteValidUntil?: string | null;
+  startDate?: string | null;
+  nextBillingDate?: string | null;
+  endDate?: string | null;
+  paymentTermsDays: number;
+  pausedAt?: string | null;
+  closedAt?: string | null;
+  notes?: string | null;
+  lines: SubscriptionLineDto[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface QuotationTemplateDto {
+  id: string;
+  name: string;
+  description?: string | null;
+  templateLines: unknown;
+  isActive: boolean;
+  createdAt: string;
+}
+
 export interface ApiErrorResponse {
   success: false;
   error: {

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import {
   Package,
   Check,
@@ -16,10 +17,42 @@ import { Badge } from '../../components/ui/Badge';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 
 export const CustomerCatalogPage: React.FC = () => {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
   // Store selected variants for each product { [productId]: selectedVariantId[] }
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string[]>>({});
   // Store selected plan for each product { [productId]: planId }
   const [selectedPlans, setSelectedPlans] = useState<Record<string, string>>({});
+
+  const requestQuoteMutation = useMutation({
+    mutationFn: async ({
+      productId,
+      planId,
+      variantId,
+    }: {
+      productId: string;
+      planId: string;
+      variantId?: string;
+    }) => {
+      await apiClient.post('/api/subscriptions', {
+        planId,
+        status: 'QUOTATION',
+        lines: [
+          {
+            productId,
+            variantId: variantId || undefined,
+            quantity: 1,
+            taxRate: 18.0,
+          },
+        ],
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customer-subscriptions'] });
+      navigate('/portal');
+    },
+  });
 
   // 1. Fetch available products
   const {
@@ -238,13 +271,17 @@ export const CustomerCatalogPage: React.FC = () => {
                     <Button
                       size="sm"
                       rightIcon={<ArrowRight className="h-3.5 w-3.5" />}
+                      isLoading={requestQuoteMutation.isPending}
                       onClick={() => {
-                        alert(
-                          `Ready to create Quotation for ${product.name} (Unit Price: ₹${pricing.totalUnitPrice.toFixed(2)}, Plan: ${chosenPlan?.billingFrequency}). Quotation conversion will execute in Step P6!`,
-                        );
+                        const chosenVariantId = selectedVariants[product.id]?.[0];
+                        requestQuoteMutation.mutate({
+                          productId: product.id,
+                          planId: chosenPlanId,
+                          variantId: chosenVariantId,
+                        });
                       }}
                     >
-                      Configure Quote
+                      Request Quotation
                     </Button>
                   </div>
                 </CardContent>

@@ -21,6 +21,8 @@ import { DiagnosticsPage } from './pages/DiagnosticsPage';
 import { PlaceholderPage } from './pages/PlaceholderPage';
 import { CatalogPage } from './pages/catalog/CatalogPage';
 import { CustomerCatalogPage } from './pages/customer/CustomerCatalogPage';
+import { SubscriptionsPage } from './pages/subscriptions/SubscriptionsPage';
+import { CustomerSubscriptionsPage } from './pages/customer/CustomerSubscriptionsPage';
 
 const RootRedirect: React.FC = () => {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -68,16 +70,7 @@ export default function App() {
               <Route index element={<AdminDashboard />} />
               <Route path="diagnostics" element={<DiagnosticsPage />} />
               <Route path="catalog" element={<CatalogPage />} />
-              <Route
-                path="subscriptions"
-                element={
-                  <PlaceholderPage
-                    title="Subscriptions & Lifecycle"
-                    modulePhase="Step P6"
-                    description="Track subscriptions through Draft, Quotation, Confirmed, Active, Paused, and Closed states."
-                  />
-                }
-              />
+              <Route path="subscriptions" element={<SubscriptionsPage />} />
               <Route
                 path="invoices"
                 element={
@@ -126,16 +119,7 @@ export default function App() {
             <Route path="/staff" element={<StaffLayout />}>
               <Route index element={<StaffDashboard />} />
               <Route path="catalog" element={<CatalogPage />} />
-              <Route
-                path="subscriptions"
-                element={
-                  <PlaceholderPage
-                    title="Quotations & Subscriptions"
-                    modulePhase="Step P6"
-                    description="Draft quotes, convert to subscriptions, and manage agreements."
-                  />
-                }
-              />
+              <Route path="subscriptions" element={<SubscriptionsPage />} />
               <Route
                 path="invoices"
                 element={
@@ -172,7 +156,8 @@ export default function App() {
           {/* Customer Portal Routes */}
           <Route element={<ProtectedRoute allowedRoles={[UserRole.CUSTOMER]} />}>
             <Route path="/portal" element={<CustomerLayout />}>
-              <Route index element={<CustomerDashboard />} />
+              <Route index element={<CustomerSubscriptionsPage />} />
+              <Route path="dashboard" element={<CustomerDashboard />} />
               <Route path="catalog" element={<CustomerCatalogPage />} />
               <Route
                 path="invoices"
