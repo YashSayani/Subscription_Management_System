@@ -6,6 +6,8 @@ import pinoHttp from 'pino-http';
 import { env } from './config/env.js';
 import { logger } from './common/logger.js';
 import { healthRouter } from './routes/health.routes.js';
+import { authRouter } from './modules/auth/routes.js';
+import { usersRouter } from './modules/users/routes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { csrfProtection } from './middleware/csrf.js';
 import { globalLimiter } from './middleware/rateLimiter.js';
@@ -51,6 +53,8 @@ if (env.NODE_ENV !== 'test') {
 
 // API Routes
 app.use('/api', healthRouter);
+app.use('/api/auth', authRouter);
+app.use('/api/users', usersRouter);
 
 // 404 Route Handler
 app.use((_req, res) => {

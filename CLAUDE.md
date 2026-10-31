@@ -434,7 +434,7 @@ sequenceDiagram
 | **P0** | **Bootstrap & Monorepo Setup** | Must | Dev | **DONE** | `main` | Dev (Typecheck, Lint, Test, Build, Health OK) |
 | **P1** | **Database Schema & Migrations** | Must | Dev | **DONE** | `main` | Dev (Prisma Migrate, Sequences, CHECKs, 8/8 Tests OK) |
 | **P2** | **Backend Foundation & Middlewares**| Must | Dev | **DONE** | `main` | Dev (AppErrors, Zod Validator, CSRF Guard, 19/19 Tests OK) |
-| **P3** | **Authentication & RBAC Engine** | Must | Dev | **TODO** | `feat/auth-rbac` | - |
+| **P3** | **Authentication & RBAC Engine** | Must | Dev | **DONE** | `main` | Dev (Dual Cookie, Token Family Reuse Revocation, RBAC, 34/34 Tests OK) |
 | **P4** | **Frontend Foundation & Design System**| Must | Dev | **TODO** | `feat/web-core` | - |
 | **P5** | **Catalog Module (Products & Plans)**| Must | Dev | **TODO** | `feat/catalog` | - |
 | **P6** | **Quotations & Subscriptions Lifecycle**| Must | Dev | **TODO** | `feat/subscriptions`| - |
@@ -458,6 +458,7 @@ sequenceDiagram
   * `[2026-10-31] [P0] [Dev] [main]: Monorepo bootstrap initialized | Configured npm workspaces (@brightloop/api, @brightloop/web, @brightloop/database, @brightloop/shared), TypeScript strict base, ESLint, Prettier, Vitest, Tailwind CSS, Vite proxy, Prisma client singleton, and real PostgreSQL health check endpoint | Typecheck passed across all 4 workspaces; ESLint passed 0 errors 0 warnings; Vitest passed 2/2 tests in 126ms; Build completed in 5.77s; Live health check returned database: connected=true, latency=2ms, db=brightloop | Ready for Step P1 (Schema & Migrations)`
   * `[2026-10-31] [P1] [Dev] [main]: Complete relational schema & PostgreSQL migrations deployed | Created 15 models with NUMERIC(14,2) currency precision, snapshot line items, native PostgreSQL sequences (sub_seq, inv_seq, pay_seq), formatted number generators, SQL CHECK constraints for negative price/overpayment prevention, composite unique key (subscription_id, period_start_date) on invoices, and composite query indexes | Prisma migrate deploy succeeded; Vitest suite passed 8/8 tests in 1.70s; Typecheck, Lint, and Build passed with 0 errors | Ready for Step P2 (Backend Foundation & Middlewares)`
   * `[2026-10-31] [P2] [Dev] [main]: Core backend foundation and security middlewares implemented | Built AppError hierarchy, generic Zod validateRequest middleware, anti-CSRF custom header protection, global and auth rate limiters, and standardized sendSuccess/sendError API envelope | Vitest suite expanded to 19/19 passed tests in 1.80s (11 foundation tests, 6 schema integrity tests, 2 health tests); Typecheck, Lint (0 errors 0 warnings), and production Build passed | Ready for Step P3 (Authentication & RBAC Engine)`
+  * `[2026-10-31] [P3] [Dev] [main]: Authentication & RBAC Engine deployed | Implemented 9+ char complex password policy with bcrypt (12 rounds), dual HttpOnly SameSite=Strict cookies, rotating refresh token with SHA-256 persistence and family reuse revocation, generic login errors preventing enumeration, registration mass-assignment protection, Admin-only staff creation, and typed permission map | Vitest suite expanded to 34/34 passed tests in 4.73s (15 auth tests, 11 foundation tests, 6 schema tests, 2 health tests); Typecheck, Lint (0 errors), and Build passed | Ready for Step P4 (Frontend Foundation & Design System)`
 
 ---
 
@@ -465,19 +466,23 @@ sequenceDiagram
 
 | Issue ID | Module | Description | Severity | Workaround / Planned Fix |
 | :--- | :--- | :--- | :---: | :--- |
-| *None* | - | Backend foundation and security middlewares verified with full test coverage. Zero debt. | - | - |
+| *None* | - | Auth & RBAC modules fully tested and secure. Zero debt. | - | - |
 
 ---
 
-## 10. NEXT PROMPT: STEP P3 AUTHENTICATION & RBAC ENGINE
+## 10. NEXT PROMPT: STEP P4 FRONTEND FOUNDATION & DESIGN SYSTEM
 
-### Objective for Step P3
-Implement complete backend authentication and role-based access control (RBAC): customer registration, secure login with bcrypt password comparison, access token JWT generation (15 min) and rotating refresh token generation with SHA-256 hashed database storage and reuse detection, dual HttpOnly SameSite=Strict cookie management, typed permission map middleware (`requirePermission`), and Admin-only staff user creation.
+### Objective for Step P4
+Build the frontend application foundation in `apps/web`: configure Axios with automatic credentials and anti-CSRF header injection, an AuthContext and `useAuth` hook tracking active session and role, an accessible reusable UI kit (Button, Input, FormField, Badge, Card, Table, Modal, Toast/Alert), role-specific layout shells (AdminLayout, StaffLayout, CustomerLayout, AuthLayout) with sidebar navigation, client-side route guards, and deterministic loading, empty, and error states.
 
-### Exact Deliverables for P3
-1. `src/modules/auth/schema.ts`: Zod validation schemas for registration, login, refresh, and password reset. Password rule: min 9 chars with uppercase, lowercase, and special character.
-2. `src/modules/auth/service.ts`: Domain logic for registration (hardcoded role `CUSTOMER`), login (generic error on bad creds), token generation, token refresh with family invalidation on replay detection, and logout revocation.
-3. `src/modules/auth/controller.ts` & `src/modules/auth/routes.ts`: Cookie-setting route handlers for `/api/auth/register`, `/api/auth/login`, `/api/auth/refresh`, `/api/auth/logout`.
+### Exact Deliverables for P4
+1. `src/api/client.ts`: Axios instance configured with `withCredentials: true`, injecting `X-Requested-With: XMLHttpRequest` and intercepting 401s for silent refresh.
+2. `src/context/AuthContext.tsx` & `src/hooks/useAuth.ts`: Auth provider managing user state, login, register, logout, and role queries.
+3. `src/components/ui/`: Reusable accessible components (`Button`, `Input`, `Badge`, `Card`, `Modal`, `Table`, `EmptyState`, `LoadingSpinner`).
+4. `src/layouts/`: `AdminLayout`, `StaffLayout`, `CustomerLayout`, `AuthLayout` with responsive sidebars and Lucide icons.
+5. `src/components/ProtectedRoute.tsx`: Client-side route convenience guard.
+6. `src/pages/auth/`: Login and Register pages wired to React Hook Form + Zod resolver with inline errors.
+7. Verification report with `npm run typecheck`, `npm run lint`, and `npm run build`.
 4. `src/middleware/authenticate.ts`: JWT verification middleware extracting `{ userId, role, customerId }` from HttpOnly cookie.
 5. `src/middleware/authorize.ts`: RBAC permission middleware enforcing the role-permission matrix.
 6. `src/modules/users/service.ts` & routes: Admin-only staff creation endpoint (`POST /api/users/staff`).
