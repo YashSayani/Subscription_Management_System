@@ -1,0 +1,17 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Baseline placeholder to enable Prisma Client generation in P0.
+// Real domain models will be added in Step P1.
+model BaselineMarker {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("_baseline_markers")
+}

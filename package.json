@@ -1,0 +1,26 @@
+{
+  "name": "brightloop-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Brightloop Subscription Management System Monorepo",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -p \"[{name}]\" -n \"API,WEB\" -c \"blue.bold,green.bold\" \"npm run dev --workspace=@brightloop/api\" \"npm run dev --workspace=@brightloop/web\"",
+    "build": "npm run prisma:generate --workspace=@brightloop/database && npm run build --workspaces --if-present",
+    "lint": "eslint .",
+    "typecheck": "npm run prisma:generate --workspace=@brightloop/database && npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\""
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.20.0",
+    "concurrently": "^9.1.2",
+    "eslint": "^9.20.1",
+    "prettier": "^3.5.2",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.24.1"
+  }
+}
