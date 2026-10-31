@@ -79,23 +79,3 @@ Visit **http://localhost:5173** to view the live system health dashboard connect
 | `npm run format` | Enforces Prettier code formatting. |
 
 ---
-
-## Two-Developer Git Workflow
-
-To ensure clean pair-programming and zero merge conflicts:
-
-1. **Baseline Branch:** `main` is protected and always in a deployable, verified state.
-2. **Branch Naming Strategy:**
-   * Developer A: `feat/<module>-devA` (e.g., `feat/auth-devA`, `feat/billing-worker-devA`)
-   * Developer B: `feat/<module>-devB` (e.g., `feat/catalog-devB`, `feat/invoices-devB`)
-   * Chores / Fixes: `chore/<description>` or `fix/<description>`
-3. **Commit Convention:** Conventional Commits:
-   ```text
-   type(scope): concise imperative description
-   ```
-   *Examples:* `feat(auth): add refresh token rotation`, `fix(invoice): prevent rounding drift`
-4. **Integration Protocol:**
-   * Pull latest `main` before starting work: `git pull origin main`.
-   * Never commit secrets or unverified code.
-   * Run `npm run typecheck && npm run lint && npm run test` before creating a pull request.
-   * Both developers update [`CLAUDE.md`](./CLAUDE.md) status table and changelog on every merge.
