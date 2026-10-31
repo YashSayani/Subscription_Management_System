@@ -445,7 +445,7 @@ sequenceDiagram
 | **P11**| **Real-time Analytics Dashboard** | Must | Dev | **DONE** | `main` | Dev (Typecheck, Lint 0 errors/0 warnings, Vitest 101/101 OK, Vite Build in 8.08s) |
 | **P12**| **Customer Self-Service Portal** | Must | Dev | **DONE** | `main` | Dev (Typecheck, Lint 0 errors/0 warnings, Vitest 115/115 OK, Vite Build in 4.79s) |
 | **P13**| **Password Reset, Audit Logs & Mailer**| Should | Dev | **DONE** | `main` | Dev (Typecheck, Lint 0 errors/0 warnings, Vitest 127/127 OK, Vite Build in 5.35s) |
-| **P14**| **Hardening, E2E Verification & Performance**| Must | Dev | **TODO** | `fix/hardening` | - |
+| **P14**| **Hardening, E2E Verification & Performance**| Must | Dev | **DONE** | `main` | Dev (Typecheck, Lint 0 errors/0 warnings, Vitest 147/147 OK, Vite Build in 4.34s) |
 | **P15**| **Demo Seeding & Submission Docs**| Must | Dev | **TODO** | `docs/final-demo` | - |
 
 ---
@@ -469,6 +469,7 @@ sequenceDiagram
   * `[2026-10-31] [P11] [Dev] [main]: Real-time Analytics Dashboard deployed | Built AnalyticsService, controller, routes (/api/analytics/overview, /aging, /revenue-trends) with VIEW_ANALYTICS permission check, MRR frequency normalization (DAILY x 30, WEEKLY x 4.3333, MONTHLY x 1, YEARLY / 12), ARR derivation, actual payment collection aggregation, AR aging buckets (CURRENT, DAYS_1_30, DAYS_31_60, DAYS_61_90, DAYS_90_PLUS), churn rate calculation, and 6-month historical revenue collection trends. Upgraded Admin and Staff dashboards with live KPI metric cards, AR aging brackets, and overdue invoice alert panels | Vitest suite expanded to 101/101 passed tests in 42.11s across 11 test suites; Typecheck passed across 4 workspaces (0 errors); Lint passed with 0 errors 0 warnings; Vite production build completed in 8.08s | Ready for Step P12 (Customer Self-Service Portal)`
   * `[2026-10-31] [P12] [Dev] [main]: Customer Self-Service Portal deployed | Built self-service endpoints (/api/users/profile, /api/users/credit-history) with strict IDOR protections and mass-assignment prevention. Built Credit Ledger tracking surplus payments and invoice credit settlements. Created responsive CustomerProfilePage with live billing profile updater, available credit card, and chronological transaction statement table. Created internal CustomersPage directory with customer search and credit ledger audit modal for Admin and Staff | Vitest suite expanded to 115/115 passed tests across 12 test suites; Typecheck passed across 4 workspaces (0 errors); Lint passed with 0 errors 0 warnings; Vite production build completed in 4.79s | Ready for Step P13 (Password Reset, Audit Logs & Mailer)`
   * `[2026-10-31] [P13] [Dev] [main]: Password Reset, Audit Logs & Mailer deployed | Built password reset recovery flow (/api/auth/forgot-password, /api/auth/reset-password) with SHA-256 token hashing, 1-hour expiration, user enumeration defense, and refresh token family invalidation. Built mock mailer with in-memory queue. Built administrative audit log engine (/api/audit-logs) with filtering by action, entity, actor, and date. Created ForgotPasswordPage, ResetPasswordPage with real-time password checklist, and AuditLogsPage with payload inspector in Admin layout | Vitest suite expanded to 127/127 passed tests across 13 test suites; Typecheck passed across 4 workspaces (0 errors); Lint passed with 0 errors 0 warnings; Vite production build completed in 5.35s | Ready for Step P14 (Hardening, E2E Verification & Performance)`
+  * `[2026-10-31] [P14] [Dev] [main]: Hardening, E2E Verification & Performance deployed | Built comprehensive security hardening verification (Helmet headers nosniff/SAMEORIGIN/off/noopen/?1/same-origin, anti-CSRF custom header validation, dual HttpOnly/SameSite=Strict cookie attributes, rate limiter HTTP 429 response envelope), response performance benchmarking (< 200ms latency across health, catalog, analytics, and invoices endpoints), and complete 11-step SaaS business lifecycle E2E simulation (catalog setup -> registration -> quotation -> confirmation -> activation -> billing cycle & idempotency -> dynamic overdue D-09 -> offline payment with surplus D-07 -> credit application -> customer profile & ledger -> administrative audit log inspection) | Vitest suite expanded to 147/147 passed tests across 14 test suites in 29.47s; Typecheck passed across 4 workspaces (0 errors); Lint passed with 0 errors 0 warnings; Vite production build completed in 4.34s | Ready for Step P15 (Demo Seeding & Submission Docs)`
 
 ---
 
@@ -476,23 +477,26 @@ sequenceDiagram
 
 | Issue ID | Module | Description | Severity | Workaround / Planned Fix |
 | :--- | :--- | :--- | :---: | :--- |
-| *None* | - | Audit Logs, Password Reset, Mailer, Customer Portal, Analytics, Discounts, Payments, Invoices, Billing worker, Subscriptions, Catalog, Auth, and Frontend modules fully verified. | - | - |
+| *None* | - | Hardening, E2E lifecycle, Audit Logs, Password Reset, Mailer, Customer Portal, Analytics, Discounts, Payments, Invoices, Billing worker, Subscriptions, Catalog, Auth, and Frontend modules fully verified. | - | - |
 
 ---
 
-## 10. NEXT PROMPT: STEP P14 HARDENING, E2E VERIFICATION & PERFORMANCE
+## 10. NEXT PROMPT: STEP P15 DEMO SEEDING & SUBMISSION DOCS
 
-### Objective for Step P14
-Complete comprehensive system hardening, security header audit, rate limiter verification, and response performance benchmarking:
-1. **Security & Header Audit:**
-   - Audit all Helmet security headers (Content-Security-Policy, X-Frame-Options, X-Content-Type-Options, Strict-Transport-Security, Referrer-Policy).
-   - Ensure SameSite=Strict cookies and anti-CSRF custom header validation on all non-GET requests.
-   - Verify rate limiting configuration for auth and general API routes.
-2. **Performance Benchmarking:**
-   - Verify all API endpoints respond well under the 2-second target (target < 200ms for typical read/write operations).
-   - Inspect Prisma query execution and indexing.
-3. **End-to-End Complete SaaS Lifecycle Test:**
-   - Automated end-to-end simulation covering the entire business journey:
-     Admin setup catalog -> Customer registers -> Customer requests quotation -> Customer confirms quotation -> Admin activates subscription -> Billing engine runs & issues invoice -> Invoice overdue simulation -> Offline payment recording with surplus -> Surplus applied to settle second invoice -> Customer updates profile & inspects statement ledger -> Audit log verification.
-4. **Automated Verification:**
-   - Comprehensive test suite (`apps/api/tests/hardening-e2e.test.ts`) verifying headers, CSRF boundary, rate limiting, and complete lifecycle continuity.
+### Objective for Step P15
+Deploy realistic database seed script, comprehensive README walkthrough, and final submission artifacts:
+1. **Realistic Database Seeder (`packages/database/prisma/seed.ts`):**
+   - Populate pre-configured accounts:
+     - Admin (`admin@brightloop.io` / `Brightloop#2026!`)
+     - Staff (`staff@brightloop.io` / `Brightloop#2026!`)
+     - Multiple Customers (`enterprise@acme.com`, `startup@techcorp.io`, etc.)
+   - Rich catalog items (SaaS subscriptions, cloud storage, support tiers, and add-on variants).
+   - Multi-state subscriptions (`ACTIVE`, `CONFIRMED`, `PAUSED`, `CLOSED`).
+   - Invoices across realistic states (`PAID`, `PARTIALLY_PAID`, `CONFIRMED`, and dynamically derived `OVERDUE`).
+   - Promotional discount coupons (`SAVE20`, `WELCOME500`).
+   - Historical payment records with surplus balances and credit ledger transactions.
+2. **Comprehensive Submission Documentation (`README.md`):**
+   - High-level architecture and domain model diagrams.
+   - Quickstart guide (setup, environment variables, database migrations, seeding, running API/Web/Worker).
+   - Role-specific login credentials and interactive testing scripts.
+   - Verification checklist documenting all passing quality gates.
