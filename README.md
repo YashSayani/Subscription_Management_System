@@ -142,20 +142,19 @@ $$\text{Overdue Status} \iff \text{status} \in \{\text{'CONFIRMED'}, \text{'PART
 
 ### Environment Configuration
 
-The repository includes pre-configured `.env.example` templates in root, `apps/api/`, and `apps/web/`.
+Configure your environment variables in `.env`:
 
-Verify `apps/api/.env` (and root `.env`):
 ```env
 PORT=4000
 NODE_ENV=development
-DATABASE_URL="postgresql://odoo:YASH%4012@127.0.0.1:5432/brightloop?schema=public"
-JWT_ACCESS_SECRET="brightloop-dev-access-secret-32-chars-long-key-12345"
-JWT_REFRESH_SECRET="brightloop-dev-refresh-secret-32-chars-long-key-67890"
+DATABASE_URL="postgresql://<username>:<password>@localhost:5432/brightloop?schema=public"
+JWT_ACCESS_SECRET="your-jwt-access-secret-minimum-32-chars-long"
+JWT_REFRESH_SECRET="your-jwt-refresh-secret-minimum-32-chars-long"
 CORS_ORIGIN="http://localhost:5173"
 BUSINESS_TIMEZONE="Asia/Kolkata"
 ```
 
-Verify `apps/web/.env`:
+In `apps/web/.env`:
 ```env
 VITE_API_URL=http://localhost:4000/api
 ```

@@ -32,7 +32,7 @@
 9. **Backend-Enforced Authorization:** Never rely on frontend route guards for security. Every API request must verify identity, permissions, and tenant/customer ownership on the backend.
 10. **Zero Fake Data or Dead Buttons:** Every button, action, and metric must bind to real database records. Mock APIs, dummy delays, and non-functional UI elements are strictly prohibited.
 11. **Justify Every Dependency:** Third-party packages require architectural justification. No bloat.
-12. **Zero Secrets in Git:** Validate environment variables with Zod at runtime. Keep `.env` gitignored and `.env.example` strictly synchronized without secret values.
+12. **Zero Secrets in Git:** Validate environment variables with Zod at runtime. Keep all `.env*` files strictly gitignored with zero environment or secret files in git.
 13. **Verifiable Execution:** Always run typecheck, lint, test, and build commands. Capture and report genuine console output. Never declare work finished without executing verification.
 14. **Single Source of Truth:** `CLAUDE.md` is the only tracking and documentation file. Do not generate separate markdown notes or scratch plans in the repository.
 15. **Session Wrap-Up Protocol:** Before completing any prompt, update the Status Table, Changelog, Known Issues, and Next Prompt sections.
@@ -87,7 +87,6 @@ BrightLoop/
 ├── package.json
 ├── tsconfig.base.json
 ├── .gitignore
-├── .env.example
 ├── apps/
 │   ├── api/
 │   │   ├── package.json

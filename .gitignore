@@ -9,9 +9,8 @@ build/
 .output/
 
 # Environment files and secrets
-.env
-.env.local
-.env.*.local
+.env*
+*.env
 *.pem
 
 # Logs
@@ -36,6 +35,12 @@ Thumbs.db
 coverage/
 .nyc_output/
 *.lcov
+
+# Local reports & documentation
+PROJECT_REPORT.md
+
+# Scratch scripts
+scripts/
 
 # Prisma generated artifacts
 prisma/migrations/.migration_lock.toml
