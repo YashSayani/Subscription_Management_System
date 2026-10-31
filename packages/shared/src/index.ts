@@ -323,6 +323,37 @@ export interface PaymentDto {
   createdAt: string;
 }
 
+// Discount DTOs
+export interface DiscountDto {
+  id: string;
+  code: string;
+  name: string;
+  description?: string | null;
+  type: DiscountType;
+  value: string | number;
+  minPurchaseAmount?: string | number | null;
+  minQuantity?: number | null;
+  validFrom?: string | null;
+  validUntil?: string | null;
+  usageLimit?: number | null;
+  usedCount: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DiscountValidationResultDto {
+  valid: boolean;
+  discountId: string;
+  code: string;
+  name: string;
+  type: DiscountType;
+  value: string | number;
+  discountAmount: string | number;
+  newSubtotal: string | number;
+  message?: string;
+}
+
 export interface ApiErrorResponse {
   success: false;
   error: {

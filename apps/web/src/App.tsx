@@ -26,6 +26,7 @@ import { CustomerSubscriptionsPage } from './pages/customer/CustomerSubscription
 import { InvoicesPage } from './pages/invoices/InvoicesPage';
 import { CustomerInvoicesPage } from './pages/customer/CustomerInvoicesPage';
 import { PaymentsPage } from './pages/payments/PaymentsPage';
+import { DiscountsPage } from './pages/discounts/DiscountsPage';
 
 const RootRedirect: React.FC = () => {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -76,16 +77,7 @@ export default function App() {
               <Route path="subscriptions" element={<SubscriptionsPage />} />
               <Route path="invoices" element={<InvoicesPage />} />
               <Route path="payments" element={<PaymentsPage />} />
-              <Route
-                path="discounts"
-                element={
-                  <PlaceholderPage
-                    title="Discounts & Promotions"
-                    modulePhase="Step P10"
-                    description="Fixed and percentage discount codes with atomic concurrent redemption limits."
-                  />
-                }
-              />
+              <Route path="discounts" element={<DiscountsPage />} />
               <Route
                 path="staff"
                 element={
