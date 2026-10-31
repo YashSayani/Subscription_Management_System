@@ -435,7 +435,7 @@ sequenceDiagram
 | **P1** | **Database Schema & Migrations** | Must | Dev | **DONE** | `main` | Dev (Prisma Migrate, Sequences, CHECKs, 8/8 Tests OK) |
 | **P2** | **Backend Foundation & Middlewares**| Must | Dev | **DONE** | `main` | Dev (AppErrors, Zod Validator, CSRF Guard, 19/19 Tests OK) |
 | **P3** | **Authentication & RBAC Engine** | Must | Dev | **DONE** | `main` | Dev (Dual Cookie, Token Family Reuse Revocation, RBAC, 34/34 Tests OK) |
-| **P4** | **Frontend Foundation & Design System**| Must | Dev | **TODO** | `feat/web-core` | - |
+| **P4** | **Frontend Foundation & Design System**| Must | Dev | **DONE** | `main` | Dev (Typecheck, Lint 0 errors, Vitest 34/34 OK, Vite Build in 6.67s) |
 | **P5** | **Catalog Module (Products & Plans)**| Must | Dev | **TODO** | `feat/catalog` | - |
 | **P6** | **Quotations & Subscriptions Lifecycle**| Must | Dev | **TODO** | `feat/subscriptions`| - |
 | **P7** | **Idempotent Billing Worker** | Must | Dev | **TODO** | `feat/billing-worker`| - |
@@ -459,6 +459,7 @@ sequenceDiagram
   * `[2026-10-31] [P1] [Dev] [main]: Complete relational schema & PostgreSQL migrations deployed | Created 15 models with NUMERIC(14,2) currency precision, snapshot line items, native PostgreSQL sequences (sub_seq, inv_seq, pay_seq), formatted number generators, SQL CHECK constraints for negative price/overpayment prevention, composite unique key (subscription_id, period_start_date) on invoices, and composite query indexes | Prisma migrate deploy succeeded; Vitest suite passed 8/8 tests in 1.70s; Typecheck, Lint, and Build passed with 0 errors | Ready for Step P2 (Backend Foundation & Middlewares)`
   * `[2026-10-31] [P2] [Dev] [main]: Core backend foundation and security middlewares implemented | Built AppError hierarchy, generic Zod validateRequest middleware, anti-CSRF custom header protection, global and auth rate limiters, and standardized sendSuccess/sendError API envelope | Vitest suite expanded to 19/19 passed tests in 1.80s (11 foundation tests, 6 schema integrity tests, 2 health tests); Typecheck, Lint (0 errors 0 warnings), and production Build passed | Ready for Step P3 (Authentication & RBAC Engine)`
   * `[2026-10-31] [P3] [Dev] [main]: Authentication & RBAC Engine deployed | Implemented 9+ char complex password policy with bcrypt (12 rounds), dual HttpOnly SameSite=Strict cookies, rotating refresh token with SHA-256 persistence and family reuse revocation, generic login errors preventing enumeration, registration mass-assignment protection, Admin-only staff creation, and typed permission map | Vitest suite expanded to 34/34 passed tests in 4.73s (15 auth tests, 11 foundation tests, 6 schema tests, 2 health tests); Typecheck, Lint (0 errors), and Build passed | Ready for Step P4 (Frontend Foundation & Design System)`
+  * `[2026-10-31] [P4] [Dev] [main]: Frontend Foundation & Design System deployed | Built Axios client with X-Requested-With CSRF injection and silent 401 token refresh queue, AuthContext/useAuth hook, modular UI design system (Button, Input, Badge, Card, Modal, Table, EmptyState, LoadingSpinner), 4 role-specific layout shells (AdminLayout, StaffLayout, CustomerLayout, AuthLayout) with Lucide navigation and credit balance indicator, client-side ProtectedRoute guard with role-based redirection, React Hook Form + Zod Login and Register pages with real-time password strength checklist indicator, DiagnosticsPage with live database round-trip latency polling, and role-specific dashboard views | Typecheck passed across 4 workspaces (0 errors); Lint passed 0 errors 0 warnings; Vitest suite passed 34/34 tests; Vite production build completed in 6.67s | Ready for Step P5 (Catalog Module)`
 
 ---
 
@@ -466,26 +467,22 @@ sequenceDiagram
 
 | Issue ID | Module | Description | Severity | Workaround / Planned Fix |
 | :--- | :--- | :--- | :---: | :--- |
-| *None* | - | Auth & RBAC modules fully tested and secure. Zero debt. | - | - |
+| *None* | - | Frontend foundation and auth workflows fully validated. Zero debt. | - | - |
 
 ---
 
-## 10. NEXT PROMPT: STEP P4 FRONTEND FOUNDATION & DESIGN SYSTEM
+## 10. NEXT PROMPT: STEP P5 CATALOG MODULE (PRODUCTS, VARIANTS & PLANS)
 
-### Objective for Step P4
-Build the frontend application foundation in `apps/web`: configure Axios with automatic credentials and anti-CSRF header injection, an AuthContext and `useAuth` hook tracking active session and role, an accessible reusable UI kit (Button, Input, FormField, Badge, Card, Table, Modal, Toast/Alert), role-specific layout shells (AdminLayout, StaffLayout, CustomerLayout, AuthLayout) with sidebar navigation, client-side route guards, and deterministic loading, empty, and error states.
-
-### Exact Deliverables for P4
-1. `src/api/client.ts`: Axios instance configured with `withCredentials: true`, injecting `X-Requested-With: XMLHttpRequest` and intercepting 401s for silent refresh.
-2. `src/context/AuthContext.tsx` & `src/hooks/useAuth.ts`: Auth provider managing user state, login, register, logout, and role queries.
-3. `src/components/ui/`: Reusable accessible components (`Button`, `Input`, `Badge`, `Card`, `Modal`, `Table`, `EmptyState`, `LoadingSpinner`).
-4. `src/layouts/`: `AdminLayout`, `StaffLayout`, `CustomerLayout`, `AuthLayout` with responsive sidebars and Lucide icons.
-5. `src/components/ProtectedRoute.tsx`: Client-side route convenience guard.
-6. `src/pages/auth/`: Login and Register pages wired to React Hook Form + Zod resolver with inline errors.
-7. Verification report with `npm run typecheck`, `npm run lint`, and `npm run build`.
-4. `src/middleware/authenticate.ts`: JWT verification middleware extracting `{ userId, role, customerId }` from HttpOnly cookie.
-5. `src/middleware/authorize.ts`: RBAC permission middleware enforcing the role-permission matrix.
-6. `src/modules/users/service.ts` & routes: Admin-only staff creation endpoint (`POST /api/users/staff`).
-7. Comprehensive integration test suite verifying registration, login cookies, token rotation, reuse revocation, role enforcement, and mass-assignment protection.
-5. `src/common/response.ts`: Standardized response helper (`sendSuccess`, `sendError`).
-6. Integration test suite verifying validation failures, CSRF protection, and error formatting.
+### Objective for Step P5
+Implement the Catalog domain module in both backend (`apps/api/src/modules/catalog/`) and frontend:
+1. **Backend Catalog Service & Endpoints:**
+   - Products CRUD with soft-delete (`archivedAt`), types (`SERVICE`, `PHYSICAL`), cost price, and sales price.
+   - Configurable product variants with price adjustments stored in data (e.g. brand "Odoo" adds 560; must be database-driven, not hardcoded).
+   - Plans CRUD (daily, weekly, monthly, yearly frequencies, minimum duration, minimum quantity, auto-close / renewal terms).
+   - Customer-accessible catalog query endpoints (active products and plans with real calculated pricing).
+   - Admin/Staff-accessible management endpoints with strict RBAC and Zod request validation.
+2. **Frontend Catalog Views:**
+   - Admin & Staff Catalog Management table / cards with variant editor and pricing adjustment controls.
+   - Customer Portal Catalog Browser where customers can view products, select brand variants, see live price updates, and choose billing frequency.
+3. **Integration Tests:**
+   - Vitest suite testing product and variant creation, decimal price calculation with variant adjustment, soft deletion, and RBAC authorization guards.
