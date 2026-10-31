@@ -18,13 +18,16 @@ describe('Invoicing Engine & PDF Export Module', () => {
     // Clean up
     await prisma.billingAttempt.deleteMany();
     await prisma.paymentAllocation.deleteMany();
+    await prisma.payment.deleteMany();
     await prisma.invoiceLine.deleteMany();
     await prisma.invoice.deleteMany();
+    await prisma.discount.deleteMany();
     await prisma.subscriptionLine.deleteMany();
     await prisma.subscription.deleteMany();
     await prisma.productVariant.deleteMany();
     await prisma.product.deleteMany();
     await prisma.plan.deleteMany();
+    await prisma.auditLog.deleteMany();
     await prisma.refreshToken.deleteMany();
     await prisma.user.deleteMany();
 
@@ -193,13 +196,16 @@ describe('Invoicing Engine & PDF Export Module', () => {
   afterAll(async () => {
     await prisma.billingAttempt.deleteMany();
     await prisma.paymentAllocation.deleteMany();
+    await prisma.payment.deleteMany();
     await prisma.invoiceLine.deleteMany();
     await prisma.invoice.deleteMany();
+    await prisma.discount.deleteMany();
     await prisma.subscriptionLine.deleteMany();
     await prisma.subscription.deleteMany();
     await prisma.productVariant.deleteMany();
     await prisma.product.deleteMany();
     await prisma.plan.deleteMany();
+    await prisma.auditLog.deleteMany();
     await prisma.refreshToken.deleteMany();
     await prisma.user.deleteMany();
     await prisma.$disconnect();

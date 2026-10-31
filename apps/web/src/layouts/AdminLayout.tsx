@@ -11,6 +11,7 @@ import {
   Activity,
   LogOut,
   ShieldAlert,
+  UserCheck,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
@@ -30,6 +31,7 @@ export const AdminLayout: React.FC = () => {
     { label: 'Invoices', to: '/admin/invoices', icon: FileText },
     { label: 'Payments', to: '/admin/payments', icon: CreditCard },
     { label: 'Discounts', to: '/admin/discounts', icon: Tag },
+    { label: 'Customers', to: '/admin/customers', icon: UserCheck },
     { label: 'Staff Management', to: '/admin/staff', icon: Users },
     { label: 'System Diagnostics', to: '/admin/diagnostics', icon: Activity },
   ];
@@ -48,13 +50,13 @@ export const AdminLayout: React.FC = () => {
               <div>
                 <span className="font-bold text-sm tracking-tight text-white">Brightloop</span>
                 <span className="block text-[10px] text-emerald-400 uppercase font-semibold tracking-wider">
-                  Admin Portal
+                  Admin Console
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Nav Items */}
+          {/* Navigation Links */}
           <nav className="p-3 space-y-1">
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -79,14 +81,14 @@ export const AdminLayout: React.FC = () => {
           </nav>
         </div>
 
-        {/* User Profile Footer */}
+        {/* User Footer */}
         <div className="p-3 border-t border-slate-800 bg-slate-900/40">
           <div className="flex items-center justify-between p-2 rounded-lg bg-slate-800/40 border border-slate-700/40">
             <div className="truncate mr-2">
               <p className="text-xs font-medium text-white truncate">{user?.fullName}</p>
               <p className="text-[10px] text-slate-400 truncate flex items-center gap-1">
-                <ShieldAlert className="h-3 w-3 text-emerald-400 inline" />
-                {user?.role}
+                <ShieldAlert className="h-3 w-3 text-rose-400 inline" />
+                Administrator
               </p>
             </div>
             <button
@@ -100,21 +102,24 @@ export const AdminLayout: React.FC = () => {
         </div>
       </aside>
 
-      {/* Main Content Viewport */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-16 border-b border-slate-800 bg-slate-900/40 backdrop-blur px-8 flex items-center justify-between">
-          <h2 className="text-sm font-medium text-slate-300">Management & Operations Control</h2>
-          <div className="flex items-center gap-3">
-            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-              Live DB Synced
+      {/* Main Content Area */}
+      <main className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+        <header className="h-16 border-b border-slate-800 bg-slate-900/40 px-8 flex items-center justify-between shrink-0">
+          <div className="flex items-center space-x-3">
+            <span className="text-xs font-medium text-slate-400">Environment:</span>
+            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              PostgreSQL 18 Local
             </span>
+          </div>
+          <div className="text-xs text-slate-400">
+            Logged in as <span className="text-slate-200 font-medium">{user?.email}</span>
           </div>
         </header>
 
-        <main className="flex-1 p-8 overflow-y-auto">
+        <div className="p-8">
           <Outlet />
-        </main>
-      </div>
+        </div>
+      </main>
     </div>
   );
 };

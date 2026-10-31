@@ -27,6 +27,8 @@ import { InvoicesPage } from './pages/invoices/InvoicesPage';
 import { CustomerInvoicesPage } from './pages/customer/CustomerInvoicesPage';
 import { PaymentsPage } from './pages/payments/PaymentsPage';
 import { DiscountsPage } from './pages/discounts/DiscountsPage';
+import { CustomerProfilePage } from './pages/customer/CustomerProfilePage';
+import { CustomersPage } from './pages/customers/CustomersPage';
 
 const RootRedirect: React.FC = () => {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -78,6 +80,7 @@ export default function App() {
               <Route path="invoices" element={<InvoicesPage />} />
               <Route path="payments" element={<PaymentsPage />} />
               <Route path="discounts" element={<DiscountsPage />} />
+              <Route path="customers" element={<CustomersPage />} />
               <Route
                 path="staff"
                 element={
@@ -99,16 +102,7 @@ export default function App() {
               <Route path="subscriptions" element={<SubscriptionsPage />} />
               <Route path="invoices" element={<InvoicesPage />} />
               <Route path="payments" element={<PaymentsPage />} />
-              <Route
-                path="customers"
-                element={
-                  <PlaceholderPage
-                    title="Customer Accounts"
-                    modulePhase="Step P6"
-                    description="View customer contact profiles and credit balances."
-                  />
-                }
-              />
+              <Route path="customers" element={<CustomersPage />} />
             </Route>
           </Route>
 
@@ -119,16 +113,7 @@ export default function App() {
               <Route path="dashboard" element={<CustomerDashboard />} />
               <Route path="catalog" element={<CustomerCatalogPage />} />
               <Route path="invoices" element={<CustomerInvoicesPage />} />
-              <Route
-                path="profile"
-                element={
-                  <PlaceholderPage
-                    title="My Account & Credit Ledger"
-                    modulePhase="Step P12"
-                    description="Manage customer details, billing tax ID, and available credits."
-                  />
-                }
-              />
+              <Route path="profile" element={<CustomerProfilePage />} />
             </Route>
           </Route>
 

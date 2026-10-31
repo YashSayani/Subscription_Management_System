@@ -97,6 +97,34 @@ export interface UserDto {
   createdAt: string;
 }
 
+export interface UpdateProfileInput {
+  fullName?: string;
+  companyName?: string | null;
+  taxId?: string | null;
+  billingAddress?: string | null;
+}
+
+export interface UserProfileDto extends UserDto {
+  updatedAt?: string;
+}
+
+export type CreditTransactionType = 'CREDIT' | 'DEBIT';
+
+export interface CreditLedgerEntryDto {
+  id: string;
+  date: string;
+  type: CreditTransactionType;
+  amount: string;
+  reference: string;
+  description: string;
+}
+
+export interface CustomerCreditHistoryDto {
+  customerId: string;
+  creditBalance: string;
+  transactions: CreditLedgerEntryDto[];
+}
+
 // Catalog DTOs
 export interface ProductVariantDto {
   id: string;

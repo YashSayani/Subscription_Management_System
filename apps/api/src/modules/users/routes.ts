@@ -1,24 +1,48 @@
 import { Router } from 'express';
 import { asyncHandler } from '../../common/asyncHandler.js';
 import { authenticate } from '../../middleware/authenticate.js';
-import { requireAdmin } from '../../middleware/authorize.js';
+import { requireAdmin, requireStaffOrAdmin } from '../../middleware/authorize.js';
 import { validateRequest } from '../../middleware/validate.js';
-import { createStaffSchema, userQuerySchema } from './schema.js';
+import {
+  createStaffSchema,
+  userQuerySchema,
+  updateProfileSchema,
+  creditHistoryQuerySchema,
+} from './schema.js';
 import * as usersController from './controller.js';
 
 export const usersRouter = Router();
 
-// All user management routes require ADMIN
-usersRouter.use(authenticate, requireAdmin);
+// All routes require authentication
+usersRouter.use(authenticate);
 
+// Self-service profile routes (any authenticated user)
+usersRouter.get('/profile', asyncHandler(usersController.getProfile));
+usersRouter.patch(
+  '/profile',
+  validateRequest({ body: updateProfileSchema }),
+  asyncHandler(usersController.updateProfile),
+);
+
+// Credit history ledger (Customers view their own, Staff/Admin can view any)
+usersRouter.get(
+  '/credit-history',
+  validateRequest({ query: creditHistoryQuerySchema }),
+  asyncHandler(usersController.getCreditHistory),
+);
+
+// Admin-only staff provisioning
 usersRouter.post(
   '/staff',
+  requireAdmin,
   validateRequest({ body: createStaffSchema }),
   asyncHandler(usersController.createStaff),
 );
 
+// Staff and Admin can list/search users
 usersRouter.get(
   '/',
+  requireStaffOrAdmin,
   validateRequest({ query: userQuerySchema }),
   asyncHandler(usersController.getUsers),
 );
