@@ -25,6 +25,7 @@ import { SubscriptionsPage } from './pages/subscriptions/SubscriptionsPage';
 import { CustomerSubscriptionsPage } from './pages/customer/CustomerSubscriptionsPage';
 import { InvoicesPage } from './pages/invoices/InvoicesPage';
 import { CustomerInvoicesPage } from './pages/customer/CustomerInvoicesPage';
+import { PaymentsPage } from './pages/payments/PaymentsPage';
 
 const RootRedirect: React.FC = () => {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -74,16 +75,7 @@ export default function App() {
               <Route path="catalog" element={<CatalogPage />} />
               <Route path="subscriptions" element={<SubscriptionsPage />} />
               <Route path="invoices" element={<InvoicesPage />} />
-              <Route
-                path="payments"
-                element={
-                  <PlaceholderPage
-                    title="Manual Payments & Allocations"
-                    modulePhase="Step P9"
-                    description="Record manual bank transfers, cheques, and credit surplus ledger."
-                  />
-                }
-              />
+              <Route path="payments" element={<PaymentsPage />} />
               <Route
                 path="discounts"
                 element={
@@ -114,16 +106,7 @@ export default function App() {
               <Route path="catalog" element={<CatalogPage />} />
               <Route path="subscriptions" element={<SubscriptionsPage />} />
               <Route path="invoices" element={<InvoicesPage />} />
-              <Route
-                path="payments"
-                element={
-                  <PlaceholderPage
-                    title="Record Payments"
-                    modulePhase="Step P9"
-                    description="Log manual payment receipts and allocate directly to open invoices."
-                  />
-                }
-              />
+              <Route path="payments" element={<PaymentsPage />} />
               <Route
                 path="customers"
                 element={

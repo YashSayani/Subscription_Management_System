@@ -83,6 +83,20 @@ export interface ApiSuccessResponse<T> {
   meta?: Record<string, unknown>;
 }
 
+// User DTOs
+export interface UserDto {
+  id: string;
+  email: string;
+  fullName: string;
+  role: UserRole;
+  companyName?: string | null;
+  taxId?: string | null;
+  billingAddress?: string | null;
+  creditBalance: string | number;
+  isActive: boolean;
+  createdAt: string;
+}
+
 // Catalog DTOs
 export interface ProductVariantDto {
   id: string;
@@ -263,6 +277,50 @@ export interface InvoiceDto {
   }>;
   createdAt: string;
   updatedAt: string;
+}
+
+// Payment DTOs
+export interface PaymentAllocationDto {
+  id: string;
+  paymentId: string;
+  invoiceId: string;
+  invoice?: {
+    id: string;
+    invoiceNumber: string;
+    totalAmount: string | number;
+    paidAmount: string | number;
+    status: InvoiceStatus;
+    dueDate: string;
+  };
+  amount: string | number;
+  allocatedAt: string;
+}
+
+export interface PaymentDto {
+  id: string;
+  paymentNumber: string;
+  customerId: string;
+  customer?: {
+    id: string;
+    email: string;
+    fullName: string;
+    companyName?: string | null;
+    creditBalance?: string | number;
+  };
+  paymentDate: string;
+  amount: string | number;
+  method: PaymentMethod;
+  notes?: string | null;
+  recordedById: string;
+  recordedBy?: {
+    id: string;
+    fullName: string;
+    email: string;
+  };
+  allocations: PaymentAllocationDto[];
+  totalAllocated: string | number;
+  surplusAmount: string | number;
+  createdAt: string;
 }
 
 export interface ApiErrorResponse {
